@@ -1,0 +1,37 @@
+=== 1. Matriz usuario x receta ===
+Usuarios con interacciones : 501
+Recetas con interacciones  : 1855
+Interacciones              : 31033
+Densidad                   : 3.34%  (celdas llenas / usuarios x recetas)
+
+=== 2. Resenas por usuario ===
+Promedio : 61.9
+Mediana  : 48
+Minimo / maximo : 30 / 573
+Percentiles 10/25/75/90 : 32 / 37 / 69 / 105
+Usuarios con menos de 3 resenas : 0
+El 10% de usuarios mas activos concentra el 27% de las resenas; el 25%, el 47%.
+
+=== 3. Resenas por receta ===
+Promedio : 16.7 | mediana: 15 | minimo / maximo: 10 / 203
+
+=== 4. Ratings ===
+  rating 0 (sin estrellas): 0 (0.0%)
+  rating 1 (1 estrella(s)): 54 (0.2%)
+  rating 2 (2 estrella(s)): 174 (0.6%)
+  rating 3 (3 estrella(s)): 766 (2.5%)
+  rating 4 (4 estrella(s)): 4789 (15.4%)
+  rating 5 (5 estrella(s)): 25250 (81.4%)
+Resenas con 4 o 5 estrellas: 96.8%. Con un umbral de 'le gusto' en 4, casi todo cuenta como positivo:
+  el rating casi no discrimina y el recomendador se apoya sobre todo en SI el usuario resenio, no en cuanto le gusto.
+
+Rating medio por usuario (sin contar ceros): promedio 4.76; 293 de 501 usuarios (58.5%) promedian 4.8 o mas.
+
+=== 5. Tiempo ===
+Rango de fechas: 2001 a 2026. Anio con mas resenas: 2008 (5412).
+
+=== 6. Categorias y autores ===
+Recetas en el catalogo: 1855 de 1855 con interacciones.
+Categorias con mas resenas: Lunch/Snacks (2908), Vegetable (2850), Potato (2303), Breakfast (1817), One Dish Meal (1805)
+Autores distintos: 622. Los 10 autores con mas recetas firman 17.0% del catalogo.
+Autores con una sola receta: 373 (60.0%). El score de 'perfil' por autor tiene poca senal si casi todos firman una sola receta.

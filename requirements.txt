@@ -1,0 +1,7 @@
+numpy
+scipy
+matplotlib
+pytest
+# solo para los scripts de scraping/
+requests
+tqdm

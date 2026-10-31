@@ -1,0 +1,9 @@
+# Entorno y cache de Python
+venv/
+__pycache__/
+.pytest_cache/
+
+# Datos (pesan varios GB, no se suben)
+*.db
+*.npz
+*.csv
