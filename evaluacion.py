@@ -22,6 +22,7 @@ import random
 from collections import defaultdict
 
 import config
+import dos_etapas
 import modelos
 import recomendador
 from base_datos import conectar
@@ -103,6 +104,8 @@ def estrategias_a_evaluar(n):
         )[0],
         f"user-kNN (k={config.K_VECINOS})": modelos.crear_estrategia(user_knn, X, usuarios, recetas),
         f"EASE (lambda={config.LAMBDA_EASE})": modelos.crear_estrategia(ease, X, usuarios, recetas),
+        "populares recientes": dos_etapas.crear_populares_recientes(recomendador.DATABASE_FILE, n),
+        "dos etapas (retrieval + ranking)": dos_etapas.crear_dos_etapas(recomendador.DATABASE_FILE, n),
     }
 
 

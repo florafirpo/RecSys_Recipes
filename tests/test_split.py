@@ -89,3 +89,28 @@ def test_se_reserva_la_fraccion_pedida(tmp_path):
     separar_train_test(db_app, db_train, db_test, fraccion_test=0.2)
     assert len(pares(db_test)) == 10
     assert len(pares(db_train)) == 40
+
+
+# ---------------------------------------------------------------------------
+# Corte temporal
+# ---------------------------------------------------------------------------
+
+from dataset import separar_train_test_temporal  # noqa: E402
+
+
+def test_temporal_separa_por_fecha(base_app, tmp_path):
+    # todas las reseñas en 2005, salvo las de las recetas 15 y 17, que pasan a 2015
+    con = conectar(base_app)
+    con.execute("UPDATE interacciones SET fecha = '2005-06-01T10:00:00Z'")
+    con.execute("UPDATE interacciones SET fecha = '2015-03-01T10:00:00Z' WHERE id_receta IN (15, 17)")
+    con.commit()
+    con.close()
+    db_train, db_test = str(tmp_path / "train.db"), str(tmp_path / "test.db")
+    separar_train_test_temporal("2012-01-01", base_app, db_train, db_test, min_en_train=3, rating_positivo=4)
+
+    en_train = pares(db_train)
+    assert not {(u, r) for u, r in en_train if r in (15, 17)}  # nada del futuro en train
+    # a test van las positivas de usuarios con 3+ reseñas previas:
+    # usuario 1 (5 previas): la 15, con 5 estrellas -> test
+    # usuario 2 (2 previas) y usuario 3 (1 previa): sin pasado suficiente -> no
+    assert pares(db_test) == {(1, 15)}

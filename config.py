@@ -79,3 +79,17 @@ MIN_QUE_QUEDAN = 3        # minimo de reviews que le dejamos en train (para que 
 SEMILLA = 42              # fija el azar, asi la separacion es reproducible
 
 REPETICIONES_AZAR = 20    # el recomendador al azar varia en cada corrida: promediamos varias
+
+# ---------------------------------------------------------------------------
+# Recomendador en dos etapas (dos_etapas.py)
+# ---------------------------------------------------------------------------
+
+K_CAND_EASE = 100
+K_CAND_USER_KNN = 100
+K_CAND_RECIENTES = 50
+K_CAND_AUTOR = 30
+DIAS_VENTANA_RECIENTE = 730   # "recientes" = los ultimos 2 años (despues de 2011 hay poca actividad)
+
+# Corte temporal interno para entrenar el ranking. Con el split temporal de
+# 2012 (train = hasta 2011), el ranking aprende con lo reseñado en 2010-2011.
+CORTE_RANKER = "2010-01-01"

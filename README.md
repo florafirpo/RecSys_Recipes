@@ -17,6 +17,7 @@ sistema_recomendacion/
 ├── dataset.py         arma recetas_app.db y separa train / test
 ├── recomendador.py    las estrategias de recomendación (la usa también la página web)
 ├── modelos.py         modelos de filtrado colaborativo: user-kNN y EASE
+├── dos_etapas.py      recomendador en dos etapas: retrieval + ranking
 ├── evaluacion.py      métricas offline (hit rate, precision, recall, MRR)
 ├── eda.py             análisis exploratorio y comparación con el promedio del sitio
 ├── tests/             tests automáticos (pytest)
@@ -71,7 +72,8 @@ Para ver todas las opciones: `python main.py --help` o `python main.py matriz --
 | `python main.py matriz 40 10 --tabla-top` | Muestra cómo quedaría recortando a las N recetas más populares | `food_scraping.db` | nada |
 | `python main.py matriz 40 10 --top 2000` | Exporta el recorte a las 2000 recetas más populares | `food_scraping.db` | `.npz` + 2 CSV |
 | `python main.py base` | Arma la base liviana de la aplicación | `food_scraping.db` + CSV | `recetas_app.db` |
-| `python main.py split` | Separa train / test por usuario | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
+| `python main.py split` | Separa train / test por usuario (80/20 al azar) | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
+| `python main.py split --temporal 2012-01-01` | Corte por fecha: train = antes, test = desde esa fecha | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
 | `python main.py evaluar` | Evalúa las estrategias sobre test | train + test | nada |
 | `python main.py eda` | Gráficos y resumen del dataset | `recetas_app.db` | `resultados/eda/` |
 | `python main.py sesgo` | Compara nuestras reseñas con el promedio que muestra el sitio | `recetas_app.db` | nada |
@@ -148,6 +150,32 @@ Estas mediciones se hicieron con el split anterior (2 reseñas por usuario en te
 ¿Por qué `perfil` no mejoró? Con el arreglo, cada usuario tiene una mediana de 1.276 recetas candidatas (de 1.855), porque la categoría es una señal muy gruesa: casi todo el catálogo cae en alguna categoría que le gustó. Probamos desempatar por popularidad en train y tampoco mejoró (hit rate 0,024). La limitación es del modelo de contenido con solo categoría y autor, no un error de código. Es un argumento para pasar a filtrado colaborativo o a usar ingredientes.
 
 ¿Por qué `top_n` mejoró al sacarle el leakage? Lo esperable era que bajara. La explicación más probable es que la popularidad dentro de la muestra (501 usuarios muy activos) describe mejor sus gustos que la popularidad de todo el sitio. El número nuevo es el que vale como baseline.
+
+### Evaluación con corte temporal y recomendador en dos etapas
+
+Con la misma idea que en el proyecto de libros, se probó un **corte global por fecha** (`python main.py split --temporal 2012-01-01`): train es todo lo anterior a 2012 y test son las reseñas positivas desde 2012, de usuarios con al menos 3 reseñas previas. Quedan 321 usuarios y 3.984 reseñas. Se cortó en 2012 porque la actividad cae mucho después de 2011 (en 2014 ya hay menos de 700 reseñas por año) y un corte más tardío dejaría muy pocos usuarios en test.
+
+También se probó el **recomendador en dos etapas** (`dos_etapas.py`):
+- **Retrieval:** EASE 100 + user-kNN 100 + las 50 más reseñadas de los últimos 2 años + hasta 30 del mismo autor. Recall: 0,187, contra 0,125 de EASE solo.
+- **Ranking:** *gradient boosting* entrenado con un corte interno en 2010.
+
+| Estrategia | precision@10 | MRR | vs top_n (IC 95 %) |
+|---|---|---|---|
+| perfil | 0,014 | 0,048 | −0,027, peor |
+| populares recientes | 0,024 | 0,068 | −0,017, peor |
+| top_n | 0,041 | 0,102 | línea base |
+| user-kNN | 0,042 | 0,105 | +0,002 [−0,003; +0,006] |
+| dos etapas | 0,041 | **0,111** | +0,000 [−0,005; +0,006] |
+| EASE | **0,044** | 0,106 | +0,003 [+0,000; +0,007] |
+
+**En recetas, ni las dos etapas ni el corte temporal cambian la conclusión: nada le gana con claridad a la popularidad.** EASE queda apenas arriba, en el borde de la significancia. Las dos etapas tienen el mejor MRR (aciertan un poco más arriba), pero en precisión empatan.
+
+¿Por qué no se repite la mejora de libros (+41 %)?
+- **Hay muchos menos datos para entrenar el ranking:** 709 reseñas positivas, contra más de 1.500 en libros, y 501 usuarios contra 10.000.
+- **La muestra ya está sesgada hacia lo popular:** el filtrado p-core se quedó con las recetas más reseñadas, y el feed de food.com viene ordenado por likes. Con ese sesgo, la popularidad es casi imbatible.
+- **Lo "reciente" no ayuda:** a diferencia de libros, las recetas más reseñadas de los últimos 2 años rinden peor que las populares de siempre. Después de 2011 la actividad es tan baja que la ventana reciente casi no tiene señal.
+
+Limitación propia del corte temporal en este proyecto: el filtrado p-core se hizo con todas las reseñas, incluidas las futuras, así que los usuarios y las recetas de la muestra se eligieron mirando también el futuro.
 
 ## Bugs corregidos
 

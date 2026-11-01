@@ -309,3 +309,59 @@ def separar_train_test(db_app=config.DB_APP, db_train=config.DB_TRAIN, db_test=c
     if usuarios_sin_reserva:
         print(f"Usuarios sin reviews reservadas (pocas reviews positivas): {usuarios_sin_reserva}")
     print(f"Guardado en {os.path.basename(db_train)} y {os.path.basename(db_test)}")
+
+
+def separar_train_test_temporal(fecha_corte, db_app=config.DB_APP, db_train=config.DB_TRAIN, db_test=config.DB_TEST,
+                                min_en_train=config.MIN_QUE_QUEDAN, rating_positivo=config.RATING_POSITIVO):
+    """Corte global por fecha: el modelo aprende con el pasado y se lo evalua con el futuro.
+
+    - train: las reseñas ANTERIORES a fecha_corte ("aaaa-mm-dd").
+    - test : las reseñas positivas desde fecha_corte, de recetas del catalogo y
+             de usuarios con al menos min_en_train reseñas antes del corte.
+    - Todas las reseñas posteriores al corte salen de train, aunque no vayan a
+      test: si no, el modelo veria el futuro de otros usuarios.
+    Las fechas vienen como "2008-03-14T10:22:05Z": alcanza con comparar los
+    primeros 10 caracteres como texto.
+    """
+    shutil.copyfile(db_app, db_train)
+    if os.path.exists(db_test):
+        os.remove(db_test)
+
+    train = conectar(db_train)
+    test = conectar(db_test)
+    test.execute("""
+        CREATE TABLE interacciones (
+            id_lector INTEGER,
+            id_receta INTEGER,
+            rating INTEGER,
+            fecha TEXT,
+            PRIMARY KEY (id_lector, id_receta)
+        )
+    """)
+
+    filas = train.execute("SELECT id_lector, id_receta, rating, fecha FROM interacciones").fetchall()
+    futuras = [f for f in filas if f[3] and f[3][:10] >= fecha_corte]
+    previas = {}
+    for f in filas:
+        if not (f[3] and f[3][:10] >= fecha_corte):
+            previas[f[0]] = previas.get(f[0], 0) + 1
+    catalogo = {r for (r,) in train.execute("SELECT id FROM recetas WHERE title IS NOT NULL")}
+    para_test = [f for f in futuras
+                 if previas.get(f[0], 0) >= min_en_train and f[2] is not None
+                 and f[2] >= rating_positivo and f[1] in catalogo]
+
+    test.executemany("INSERT INTO interacciones VALUES (?, ?, ?, ?)", para_test)
+    train.executemany("DELETE FROM interacciones WHERE id_lector = ? AND id_receta = ?",
+                      [(f[0], f[1]) for f in futuras])
+    train.execute("DELETE FROM vistos")
+    train.execute("DROP TABLE IF EXISTS lote_actual")
+    train.commit()
+    test.commit()
+    train.close()
+    test.close()
+
+    print(f"Corte: {fecha_corte}")
+    print(f"Reseñas posteriores al corte (salen de train): {len(futuras)}")
+    print(f"Reseñas en test (positivas, de usuarios con pasado): {len(para_test)}")
+    print(f"Usuarios en test: {len({f[0] for f in para_test})}")
+    print(f"Guardado en {os.path.basename(db_train)} y {os.path.basename(db_test)}")

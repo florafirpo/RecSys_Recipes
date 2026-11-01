@@ -6,7 +6,8 @@ Punto de entrada del proyecto. Cada paso del pipeline es un subcomando:
     python main.py matriz 40 10 --tabla-top    muestra como quedaria recortando a las N recetas mas populares
     python main.py matriz 40 10 --top 2000     exporta el recorte a las 2000 recetas mas populares
     python main.py base                        arma recetas_app.db a partir de la matriz exportada
-    python main.py split                       separa recetas_app.db en train y test
+    python main.py split                       separa recetas_app.db en train y test (80/20 por usuario, al azar)
+    python main.py split --temporal 2012-01-01 corte por fecha: train = antes, test = desde esa fecha
     python main.py evaluar                     compara los recomendadores sobre test
     python main.py eda                         graficos y resumen de recetas_app.db
     python main.py sesgo                       compara nuestras reseñas con el promedio del sitio
@@ -53,7 +54,10 @@ def comando_base(args):
 
 def comando_split(args):
     import dataset
-    dataset.separar_train_test()
+    if args.temporal:
+        dataset.separar_train_test_temporal(args.temporal)
+    else:
+        dataset.separar_train_test()
 
 
 def comando_evaluar(args):
@@ -85,6 +89,7 @@ def crear_parser():
     p.set_defaults(funcion=comando_base)
 
     p = sub.add_parser("split", help="separa recetas_app.db en train y test")
+    p.add_argument("--temporal", metavar="AAAA-MM-DD", default=None, help="corte por fecha en lugar de al azar")
     p.set_defaults(funcion=comando_split)
 
     p = sub.add_parser("evaluar", help="evalua los recomendadores contra test")
