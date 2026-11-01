@@ -67,6 +67,10 @@ COMBINACIONES_A_PROBAR = [
     (30, 12), (35, 12), (25, 10), (25, 8), (20, 8),
 ]
 
+# Grillas que prueba  python main.py matriz --densidad-minima 0.02
+GRILLA_MIN_USUARIO = (5, 8, 10, 12, 15, 20, 25, 30)
+GRILLA_MIN_ITEM = (3, 5, 8, 10, 12, 15)
+
 # Tamaños de recorte que se muestran con --tabla-top
 TAMANIOS_TOP = (1000, 1500, 2000, 2500, 3000, 3500)
 

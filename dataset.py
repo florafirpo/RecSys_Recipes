@@ -195,9 +195,13 @@ def chequear_base_app(destino):
 def armar_base_app(db_origen=config.DB_SCRAPING, db_destino=config.DB_APP,
                    csv_usuarios=config.CSV_USUARIOS, csv_items=config.CSV_ITEMS):
     """Arma recetas_app.db desde cero a partir de food_scraping.db y de los
-    CSV de indices que exporta matriz.py."""
+    CSV de indices que exporta matriz.py. Si ya habia una recetas_app.db, la
+    guarda como recetas_app_anterior.db (por si hay que volver atras)."""
     if os.path.exists(db_destino):
+        respaldo = db_destino.replace(".db", "_anterior.db")
+        shutil.copyfile(db_destino, respaldo)
         os.remove(db_destino)
+        print(f"La base anterior quedo guardada en {os.path.basename(respaldo)}")
 
     usuarios_ids = leer_ids_del_csv(csv_usuarios, "member_id")
     items_ids = leer_ids_del_csv(csv_items, "recipe_id")

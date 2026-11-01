@@ -172,3 +172,32 @@ def exportar_filas(filas, ruta_npz, ruta_csv_usuarios, ruta_csv_items):
         for idx, i in enumerate(items_ordenados):
             writer.writerow([idx, i])
     print(f"Índice de recetas guardado en '{ruta_csv_items}'.")
+
+
+# ---------------------------------------------------------------------------
+# Eleccion automatica de los minimos
+# ---------------------------------------------------------------------------
+
+def elegir_por_densidad(interacciones, densidad_minima, grilla_usuario, grilla_item):
+    """Prueba todas las combinaciones (min_usuario, min_item) de las grillas y
+    devuelve la que deja MAS USUARIOS con una densidad de al menos
+    densidad_minima (si empatan en usuarios, la de mas interacciones).
+    Imprime la tabla completa. Devuelve (min_usuario, min_item, filas) o None."""
+    print(f"\nBuscando la combinacion con mas usuarios y densidad >= {densidad_minima:.1%}")
+    print(f"{'min_usuario':>11} {'min_item':>9} {'usuarios':>9} {'recetas':>9} {'interacciones':>14} {'densidad':>10}")
+    print("-" * 70)
+    mejor = None
+    for min_u in grilla_usuario:
+        for min_i in grilla_item:
+            filas = filtrar_por_core(interacciones, min_u, min_i)
+            n_u, n_i, n_int, dens = calcular_densidad(filas)
+            cumple = dens >= densidad_minima and n_u > 0
+            marca = "  <- cumple" if cumple else ""
+            print(f"{min_u:>11} {min_i:>9} {n_u:>9} {n_i:>9} {n_int:>14} {dens*100:>9.2f}%{marca}")
+            if cumple and (mejor is None or (n_u, n_int) > (mejor[3], mejor[4])):
+                mejor = (min_u, min_i, filas, n_u, n_int)
+    if mejor is None:
+        print("\nNinguna combinacion llega a esa densidad.")
+        return None
+    print(f"\nElegida: min_usuario={mejor[0]}, min_item={mejor[1]} ({mejor[3]} usuarios, {mejor[4]} interacciones)")
+    return mejor[0], mejor[1], mejor[2]

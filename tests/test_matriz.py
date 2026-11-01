@@ -59,3 +59,18 @@ def test_exportar_filas_no_suma_reviews_repetidas(tmp_path):
 def test_sacar_repetidas_deja_la_primera_y_respeta_el_orden():
     filas = [(1, 7, 5), (2, 7, 3), (1, 7, 2), (1, 8, 4)]
     assert sacar_repetidas(filas) == [(1, 7, 5), (2, 7, 3), (1, 8, 4)]
+
+
+def test_elegir_por_densidad_prefiere_mas_usuarios_que_cumplan():
+    from matriz import elegir_por_densidad
+    # nucleo denso: a, b, c leen las recetas 1, 2, 3; d solo lee la 1 y la 4 (baja la densidad)
+    filas = [(u, i, 5) for u in "abc" for i in (1, 2, 3)] + [("d", 1, 5), ("d", 4, 5)]
+    min_u, min_i, elegidas = elegir_por_densidad(filas, 0.5, grilla_usuario=(1, 2, 3), grilla_item=(1, 2, 3))
+    usuarios = {u for u, _, _ in elegidas}
+    assert usuarios == {"a", "b", "c", "d"}  # con minimos (1,1) entran los 4 y la densidad es 11/16 >= 0.5
+    assert (min_u, min_i) == (1, 1)
+
+
+def test_elegir_por_densidad_sin_combinacion_valida():
+    from matriz import elegir_por_densidad
+    assert elegir_por_densidad([("a", 1, 5), ("b", 2, 5)], 0.9, (1,), (1,)) is None

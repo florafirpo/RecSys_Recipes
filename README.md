@@ -71,7 +71,8 @@ Para ver todas las opciones: `python main.py --help` o `python main.py matriz --
 | `python main.py matriz 40 10` | Exporta la matriz con p-core (mín. 40 reseñas por usuario, 10 por receta) | `food_scraping.db` | `.npz` + 2 CSV |
 | `python main.py matriz 40 10 --tabla-top` | Muestra cómo quedaría recortando a las N recetas más populares | `food_scraping.db` | nada |
 | `python main.py matriz 40 10 --top 2000` | Exporta el recorte a las 2000 recetas más populares | `food_scraping.db` | `.npz` + 2 CSV |
-| `python main.py base` | Arma la base liviana de la aplicación | `food_scraping.db` + CSV | `recetas_app.db` |
+| `python main.py matriz --densidad-minima 0.02` | Prueba una grilla de mínimos y exporta la combinación con más usuarios y densidad ≥ 2 % | `food_scraping.db` | `.npz` + 2 CSV |
+| `python main.py base` | Arma la base liviana de la aplicación (la anterior queda como `recetas_app_anterior.db`) | `food_scraping.db` + CSV | `recetas_app.db` |
 | `python main.py split` | Separa train / test por usuario (80/20 al azar) | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
 | `python main.py split --temporal 2012-01-01` | Corte por fecha: train = antes, test = desde esa fecha | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
 | `python main.py evaluar` | Evalúa las estrategias sobre test | train + test | nada |

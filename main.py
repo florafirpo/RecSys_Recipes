@@ -5,6 +5,9 @@ Punto de entrada del proyecto. Cada paso del pipeline es un subcomando:
     python main.py matriz 40 10                exporta la matriz con p-core (40, 10)
     python main.py matriz 40 10 --tabla-top    muestra como quedaria recortando a las N recetas mas populares
     python main.py matriz 40 10 --top 2000     exporta el recorte a las 2000 recetas mas populares
+    python main.py matriz --densidad-minima 0.02
+                                               prueba muchas combinaciones y exporta la que deja
+                                               mas usuarios con densidad >= 2%
     python main.py base                        arma recetas_app.db a partir de la matriz exportada
     python main.py split                       separa recetas_app.db en train y test (80/20 por usuario, al azar)
     python main.py split --temporal 2012-01-01 corte por fecha: train = antes, test = desde esa fecha
@@ -25,6 +28,14 @@ def comando_matriz(args):
     import matriz
 
     interacciones = matriz.cargar_interacciones(config.DB_SCRAPING)
+
+    if args.densidad_minima:
+        elegida = matriz.elegir_por_densidad(interacciones, args.densidad_minima,
+                                             config.GRILLA_MIN_USUARIO, config.GRILLA_MIN_ITEM)
+        if elegida:
+            matriz.exportar_filas(elegida[2], config.NPZ_MATRIZ, config.CSV_USUARIOS, config.CSV_ITEMS)
+            print("\nSiguiente paso: python main.py base")
+        return
 
     if len(args.minimos) != 2:
         matriz.explorar(interacciones, config.COMBINACIONES_A_PROBAR)
@@ -83,6 +94,8 @@ def crear_parser():
     p.add_argument("minimos", nargs="*", type=int, help="min_usuario min_item (sin numeros: solo explora)")
     p.add_argument("--top", type=int, default=None, help="quedarse solo con las N recetas mas populares")
     p.add_argument("--tabla-top", action="store_true", help="mostrar como quedaria con distintos N")
+    p.add_argument("--densidad-minima", type=float, default=None,
+                   help="elige y exporta la combinacion con mas usuarios que supere esta densidad (ej. 0.02)")
     p.set_defaults(funcion=comando_matriz)
 
     p = sub.add_parser("base", help="arma recetas_app.db con el subconjunto de la matriz")
