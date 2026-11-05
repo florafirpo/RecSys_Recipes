@@ -178,6 +178,17 @@ También se probó el **recomendador en dos etapas** (`dos_etapas.py`):
 
 Limitación propia del corte temporal en este proyecto: el filtrado p-core se hizo con todas las reseñas, incluidas las futuras, así que los usuarios y las recetas de la muestra se eligieron mirando también el futuro.
 
+### ¿Conviene bajar los mínimos del filtrado para tener más usuarios?
+
+Se probó con `python main.py matriz --densidad-minima 0.02`, que busca la combinación con más usuarios y una densidad de al menos 2 %:
+
+- **Con los mínimos solos no se llega al 2 %.** Por ejemplo, (30, 10) sin recorte da 1.366 usuarios, 6.176 recetas y 1,23 %. Bajar los mínimos suma usuarios, pero la densidad cae (con (10, 8): 5.653 usuarios y 0,38 %).
+- **La densidad sube recortando a las recetas más populares.** La base actual (501 usuarios, 1.855 recetas, 3,34 %) sale de (30, 10) con ese recorte. La mejor opción con densidad ≥ 2 % fue (10, 10) con las 1.000 recetas más populares: 1.295 usuarios, 1.000 recetas, 28.111 reseñas y 2,17 %.
+
+**Decisión: se mantiene la base actual.** La base de 2,17 % suma usuarios, pero deja un catálogo formado solo por las 1.000 recetas más populares, con usuarios que reseñaron en promedio 22 recetas (contra 62 de la base actual). Recortar a lo más popular sube la densidad a costa de sesgar el problema: si el catálogo es solo lo popular, "recomendar lo popular" acierta casi siempre, y ningún modelo, tampoco el ranking de dos etapas, puede mostrar lo que aporta.
+
+Para comparar: en el proyecto de libros la matriz tiene 0,09 % de densidad y aun así EASE y las dos etapas le ganan con claridad a la popularidad. La densidad alta sirve para que los métodos por similitud tengan vecinos en común, pero no es un requisito de los modelos.
+
 ## Bugs corregidos
 
 Cada uno tiene un test de regresión en `tests/` para que no vuelva a aparecer.
