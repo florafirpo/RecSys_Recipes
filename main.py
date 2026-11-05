@@ -30,10 +30,10 @@ def comando_matriz(args):
     interacciones = matriz.cargar_interacciones(config.DB_SCRAPING)
 
     if args.densidad_minima:
-        elegida = matriz.elegir_por_densidad(interacciones, args.densidad_minima,
-                                             config.GRILLA_MIN_USUARIO, config.GRILLA_MIN_ITEM)
+        elegida = matriz.elegir_por_densidad(interacciones, args.densidad_minima, config.GRILLA_MIN_USUARIO,
+                                             config.GRILLA_MIN_ITEM, config.GRILLA_TOP)
         if elegida:
-            matriz.exportar_filas(elegida[2], config.NPZ_MATRIZ, config.CSV_USUARIOS, config.CSV_ITEMS)
+            matriz.exportar_filas(elegida[3], config.NPZ_MATRIZ, config.CSV_USUARIOS, config.CSV_ITEMS)
             print("\nSiguiente paso: python main.py base")
         return
 

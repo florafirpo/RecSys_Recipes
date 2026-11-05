@@ -65,7 +65,7 @@ def test_elegir_por_densidad_prefiere_mas_usuarios_que_cumplan():
     from matriz import elegir_por_densidad
     # nucleo denso: a, b, c leen las recetas 1, 2, 3; d solo lee la 1 y la 4 (baja la densidad)
     filas = [(u, i, 5) for u in "abc" for i in (1, 2, 3)] + [("d", 1, 5), ("d", 4, 5)]
-    min_u, min_i, elegidas = elegir_por_densidad(filas, 0.5, grilla_usuario=(1, 2, 3), grilla_item=(1, 2, 3))
+    min_u, min_i, top, elegidas = elegir_por_densidad(filas, 0.5, grilla_usuario=(1, 2, 3), grilla_item=(1, 2, 3))
     usuarios = {u for u, _, _ in elegidas}
     assert usuarios == {"a", "b", "c", "d"}  # con minimos (1,1) entran los 4 y la densidad es 11/16 >= 0.5
     assert (min_u, min_i) == (1, 1)
@@ -74,3 +74,14 @@ def test_elegir_por_densidad_prefiere_mas_usuarios_que_cumplan():
 def test_elegir_por_densidad_sin_combinacion_valida():
     from matriz import elegir_por_densidad
     assert elegir_por_densidad([("a", 1, 5), ("b", 2, 5)], 0.9, (1,), (1,)) is None
+
+
+def test_elegir_por_densidad_usa_el_recorte_si_hace_falta():
+    from matriz import elegir_por_densidad
+    # sin recorte: 4 usuarios x 4 recetas con 10 reseñas -> densidad 0,625 (no llega a 0,7).
+    # con las 3 recetas mas populares (1, 2, 3), d se queda sin reseñas y sale: 9/9 = 1,0
+    filas = [(u, i, 5) for u in "abc" for i in (1, 2, 3)] + [("d", 4, 5)]
+    resultado = elegir_por_densidad(filas, 0.7, grilla_usuario=(1,), grilla_item=(1,), grilla_top=(None, 3))
+    assert resultado is not None
+    min_u, min_i, top, elegidas = resultado
+    assert top == 3 and {u for u, _, _ in elegidas} == {"a", "b", "c"}

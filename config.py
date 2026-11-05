@@ -68,8 +68,11 @@ COMBINACIONES_A_PROBAR = [
 ]
 
 # Grillas que prueba  python main.py matriz --densidad-minima 0.02
-GRILLA_MIN_USUARIO = (5, 8, 10, 12, 15, 20, 25, 30)
-GRILLA_MIN_ITEM = (3, 5, 8, 10, 12, 15)
+GRILLA_MIN_USUARIO = (5, 8, 10, 15, 20, 25, 30)
+GRILLA_MIN_ITEM = (3, 5, 8, 10)
+# Recorte a las N recetas mas populares (None = sin recorte). Es lo que mas sube
+# la densidad: la base de 501 usuarios y 3,34% salio de (30, 10) con recorte.
+GRILLA_TOP = (None, 1000, 1500, 2000, 2500, 3000, 4000)
 
 # Tamaños de recorte que se muestran con --tabla-top
 TAMANIOS_TOP = (1000, 1500, 2000, 2500, 3000, 3500)

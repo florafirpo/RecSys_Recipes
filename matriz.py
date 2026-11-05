@@ -178,26 +178,33 @@ def exportar_filas(filas, ruta_npz, ruta_csv_usuarios, ruta_csv_items):
 # Eleccion automatica de los minimos
 # ---------------------------------------------------------------------------
 
-def elegir_por_densidad(interacciones, densidad_minima, grilla_usuario, grilla_item):
-    """Prueba todas las combinaciones (min_usuario, min_item) de las grillas y
-    devuelve la que deja MAS USUARIOS con una densidad de al menos
-    densidad_minima (si empatan en usuarios, la de mas interacciones).
-    Imprime la tabla completa. Devuelve (min_usuario, min_item, filas) o None."""
+def elegir_por_densidad(interacciones, densidad_minima, grilla_usuario, grilla_item, grilla_top=(None,)):
+    """Prueba todas las combinaciones (min_usuario, min_item, top) y devuelve la
+    que deja MAS USUARIOS con una densidad de al menos densidad_minima (si
+    empatan en usuarios, la de mas interacciones).
+    'top' = quedarse solo con las N recetas mas populares y volver a aplicar los
+    minimos (None = sin recorte). El recorte es lo que mas sube la densidad.
+    Imprime la tabla completa. Devuelve (min_usuario, min_item, top, filas) o None."""
     print(f"\nBuscando la combinacion con mas usuarios y densidad >= {densidad_minima:.1%}")
-    print(f"{'min_usuario':>11} {'min_item':>9} {'usuarios':>9} {'recetas':>9} {'interacciones':>14} {'densidad':>10}")
-    print("-" * 70)
+    print(f"{'min_usuario':>11} {'min_item':>9} {'top':>6} {'usuarios':>9} {'recetas':>9} {'interacciones':>14} {'densidad':>10}")
+    print("-" * 77)
     mejor = None
     for min_u in grilla_usuario:
         for min_i in grilla_item:
-            filas = filtrar_por_core(interacciones, min_u, min_i)
-            n_u, n_i, n_int, dens = calcular_densidad(filas)
-            cumple = dens >= densidad_minima and n_u > 0
-            marca = "  <- cumple" if cumple else ""
-            print(f"{min_u:>11} {min_i:>9} {n_u:>9} {n_i:>9} {n_int:>14} {dens*100:>9.2f}%{marca}")
-            if cumple and (mejor is None or (n_u, n_int) > (mejor[3], mejor[4])):
-                mejor = (min_u, min_i, filas, n_u, n_int)
+            base = filtrar_por_core(interacciones, min_u, min_i)  # el p-core se calcula una sola vez
+            for top in grilla_top:
+                filas = base if top is None else recortar_top_items(base, top, min_u, min_i)
+                n_u, n_i, n_int, dens = calcular_densidad(filas)
+                cumple = dens >= densidad_minima and n_u > 0
+                marca = "  <- cumple" if cumple else ""
+                texto_top = "-" if top is None else str(top)
+                print(f"{min_u:>11} {min_i:>9} {texto_top:>6} {n_u:>9} {n_i:>9} {n_int:>14} {dens*100:>9.2f}%{marca}")
+                if cumple and (mejor is None or (n_u, n_int) > (mejor[4], mejor[5])):
+                    mejor = (min_u, min_i, top, filas, n_u, n_int)
     if mejor is None:
         print("\nNinguna combinacion llega a esa densidad.")
         return None
-    print(f"\nElegida: min_usuario={mejor[0]}, min_item={mejor[1]} ({mejor[3]} usuarios, {mejor[4]} interacciones)")
-    return mejor[0], mejor[1], mejor[2]
+    texto_top = "sin recorte" if mejor[2] is None else f"top {mejor[2]} recetas"
+    print(f"\nElegida: min_usuario={mejor[0]}, min_item={mejor[1]}, {texto_top} "
+          f"({mejor[4]} usuarios, {mejor[5]} interacciones)")
+    return mejor[0], mejor[1], mejor[2], mejor[3]
