@@ -18,6 +18,8 @@ Uso:
   python 3_completar_comentarios.py --limite 20           (prueba chica: 20 recetas)
   python 3_completar_comentarios.py --limite 2000 --min-reviews 15 --tope-paginas 10
   python 3_completar_comentarios.py --parciales --tope-paginas 20
+  python 3_completar_comentarios.py --min-reviews 10 --max-reviews 50 --limite 1500
+        (solo recetas de popularidad media: entre 10 y 50 reviews en el sitio)
         (retoma las recetas "parciales": sigue desde la ultima pagina bajada, sin repetir;
          con otro tope baja mas paginas, o sin --tope-paginas las completa del todo)
         (--tope-paginas 10 baja como maximo 10 paginas extra = 50 reviews mas por receta;
@@ -178,6 +180,8 @@ def main():
                     help="vuelve a marcar como pendientes las recetas con mas de 5 reviews")
     ap.add_argument("--limite", type=int, default=None, help="maximo de recetas a procesar en esta corrida")
     ap.add_argument("--min-reviews", type=int, default=6, help="solo recetas con al menos tantas reviews (default 6)")
+    ap.add_argument("--max-reviews", type=int, default=None,
+                    help="solo recetas con como mucho tantas reviews (para apuntar a recetas de popularidad media)")
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--parciales", action="store_true",
                     help="retoma las recetas marcadas como parciales (faltan_comentarios = 2)")
@@ -198,6 +202,9 @@ def main():
              ORDER BY total_comentarios DESC"""
     sql = sql.format(marca=2 if args.parciales else 1)
     params = [args.min_reviews]
+    if args.max_reviews:
+        sql = sql.replace("ORDER BY", "AND total_comentarios <= ?\n             ORDER BY")
+        params.append(args.max_reviews)
     if args.limite:
         sql += " LIMIT ?"
         params.append(args.limite)
