@@ -51,6 +51,10 @@ REVIEWS_POR_PAGINA = 5
 PAUSA_MIN, PAUSA_MAX = 1.0, 2.5
 MAX_REINTENTOS = 2
 BLOQUEOS_PARA_FRENAR = 5
+# Si se corta internet (wifi, la compu se suspendio), en vez de dar la receta por
+# perdida enseguida, esperamos y reintentamos: 15 s, 30 s, 60 s, 120 s, 240 s, 300 s...
+# (unos 15 minutos en total) antes de rendirnos.
+ESPERAS_SIN_RED = [15, 30, 60, 120, 240, 300, 300]
 
 bloqueos_consecutivos = 0
 lock_bloqueos = threading.Lock()
@@ -101,14 +105,24 @@ def pedir_pagina(food_id, pn):
     """Devuelve (items, total). Lanza excepcion si no pudo: nunca devuelve 'vacio' por un error."""
     global bloqueos_consecutivos
     ultimo_error = "sin respuesta"
-    for intento in range(MAX_REINTENTOS + 1):
+    cortes_de_red = 0
+    intento = 0
+    while intento <= MAX_REINTENTOS:
         try:
             r = requests.get(API.format(id=food_id), headers=HEADERS,
                              params={"pn": pn, "sort": "-like"}, timeout=20)
         except requests.exceptions.RequestException as e:
             ultimo_error = f"red: {e}"
-            time.sleep(2 * (intento + 1))
-            continue
+            if cortes_de_red >= len(ESPERAS_SIN_RED) or evento_detener.is_set():
+                break
+            # esperar de a 1 segundo, para que Ctrl+C no tenga que esperar el total
+            for _ in range(ESPERAS_SIN_RED[cortes_de_red]):
+                if evento_detener.is_set():
+                    break
+                time.sleep(1)
+            cortes_de_red += 1
+            continue  # un corte de red no gasta los reintentos normales
+        intento += 1
 
         if r.status_code == 200:
             with lock_bloqueos:
