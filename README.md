@@ -223,4 +223,6 @@ La página web importa `recomendador.py`, que a su vez necesita `config.py`. Sub
 
 ## Scraping
 
+`scraping/8_historial_usuarios.py` baja el historial **completo** de reseñas de los usuarios más útiles, usando el endpoint `api.food.com/external/v1/members/<id>/feed/reviews` (5 reseñas por pedido; lo encontró `probar_endpoint_usuario.py`). Prioriza a los usuarios que más recetas del núcleo comparten y deja a los "gigantes" (más de 1.500 reseñas) para el final. Recorrer receta por receta muestra solo pedazos de cada usuario; completar historiales de usuarios activos es lo que densifica la matriz sin recortar por popularidad.
+
 Los scripts de `scraping/` se corrieron una sola vez para construir `food_scraping.db` y se conservan sin cambios para documentar cómo se obtuvieron los datos. Usan rutas relativas, así que se corren desde la carpeta de datos, por ejemplo `cd "Pagina Food"` y después `python sistema_recomendacion/scraping/5_resumen_final.py`. Todos son resumibles y respetan pausas entre pedidos para no sobrecargar el sitio.
