@@ -1,5 +1,7 @@
 """Tests de las metricas de evaluacion (cuentas hechas a mano)."""
 
+import math
+
 import pytest
 
 from evaluacion import evaluar, metricas
@@ -38,3 +40,13 @@ def test_comparar_contra_base_detecta_una_mejora_clara():
     dif, inf, sup = comparar_contra_base(buena, mala, reservadas, n=2)
     assert dif == pytest.approx(0.5)
     assert inf > 0  # significativa
+
+
+def test_ndcg_premia_los_aciertos_arriba():
+    # 2 reservadas, n = 3. Aciertos en las posiciones 1 y 3.
+    m = metricas(recomendadas=[5, 1, 6], reservadas={5, 6}, n=3)
+    ideal = 1 + 1 / math.log2(3)          # los dos aciertos en las posiciones 1 y 2
+    obtenido = 1 + 1 / math.log2(4)       # aciertos en las posiciones 1 y 3
+    assert m["NDCG@N"] == pytest.approx(obtenido / ideal)
+    perfecto = metricas(recomendadas=[5, 6, 1], reservadas={5, 6}, n=3)
+    assert perfecto["NDCG@N"] == pytest.approx(1.0)

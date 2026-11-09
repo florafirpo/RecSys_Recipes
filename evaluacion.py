@@ -10,6 +10,10 @@ le escondimos. Metricas (promedio entre usuarios):
   - precision@N: de las N recomendadas, que fraccion eran reservadas.
   - recall@N   : de las reservadas, que fraccion aparecio entre las N.
   - MRR        : 1 / posicion del primer acierto (0 si no hubo); premia acertar arriba.
+  - NDCG@N     : mira la posicion de TODOS los aciertos, no solo del primero. Cada
+                 acierto suma 1 / log2(posicion + 1), y se divide por lo maximo
+                 posible (todos los aciertos arriba de todo). Va de 0 a 1. Es la
+                 metrica de la competencia de libros (alli con N = 20).
   - con N recetas: % de usuarios a los que la estrategia les llego a dar N recetas.
 
 Para sumar un modelo nuevo, agregalo al diccionario de estrategias_a_evaluar().
@@ -17,6 +21,7 @@ Cada estrategia es una funcion que recibe id_lector y devuelve una lista de
 recetas (filas con la clave "id"), ordenadas de mejor a peor.
 """
 
+import math
 import os
 import random
 from collections import defaultdict
@@ -41,11 +46,14 @@ def cargar_test(db_test=config.DB_TEST):
 def metricas(recomendadas, reservadas, n):
     """Metricas de UN usuario, para una lista de ids recomendados."""
     aciertos = [i for i, id_receta in enumerate(recomendadas) if id_receta in reservadas]
+    dcg = sum(1 / math.log2(i + 2) for i in aciertos)
+    idcg = sum(1 / math.log2(i + 2) for i in range(min(len(reservadas), n)))
     return {
         "hit rate@N": 1.0 if aciertos else 0.0,
         "precision@N": len(aciertos) / n,
         "recall@N": len(aciertos) / len(reservadas),
         "MRR": 1 / (aciertos[0] + 1) if aciertos else 0.0,
+        "NDCG@N": dcg / idcg,
         "con N recetas": 1.0 if len(recomendadas) >= n else 0.0,
     }
 
@@ -105,7 +113,8 @@ def estrategias_a_evaluar(n):
         f"user-kNN (k={config.K_VECINOS})": modelos.crear_estrategia(user_knn, X, usuarios, recetas),
         f"EASE (lambda={config.LAMBDA_EASE})": modelos.crear_estrategia(ease, X, usuarios, recetas),
         "populares recientes": dos_etapas.crear_populares_recientes(recomendador.DATABASE_FILE, n),
-        "dos etapas (retrieval + ranking)": dos_etapas.crear_dos_etapas(recomendador.DATABASE_FILE, n),
+        # El recomendador en dos etapas (dos_etapas.crear_dos_etapas) se saco de la
+        # comparacion: con estos datos no le gana a EASE (ver README).
     }
 
 

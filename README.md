@@ -134,6 +134,8 @@ Resultados con la **base anterior** (501 usuarios, N = 10; `azar` es el promedio
 
 La popularidad es un rival muy fuerte en este dataset, por cómo se armó la muestra (ver Limitaciones). Aun así, los dos modelos colaborativos la superan con diferencias pequeñas pero significativas.
 
+**Métricas que miran el orden.** precision, recall y hit rate no miran en qué puesto aparece el acierto, y MRR mira solo el primero. Por eso también se calcula **NDCG@10**, que tiene en cuenta el puesto de todos los aciertos (es la métrica de la competencia de libros, allí con N = 20). Con la base actual (k = 100, λ = 750), NDCG@10 da EASE 0,095, user-kNN 0,093, top_n 0,078 y perfil 0,028 al azar, y EASE 0,049, user-kNN 0,049, top_n 0,042 y perfil 0,018 con el corte temporal: el mismo orden que con precision.
+
 Con más recetas escondidas por usuario es más fácil acertar al menos una, así que el hit rate sube mucho respecto del split anterior. Las métricas de los dos splits **no se comparan entre sí**. Para comparar modelos conviene mirar sobre todo precision@10 y MRR.
 
 Como todos los usuarios de la muestra tienen 30 reseñas o más, `recomendar` siempre usa `perfil` y por eso rinde lo mismo que `perfil`, por debajo de `top_n`.
