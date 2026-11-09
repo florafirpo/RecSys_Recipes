@@ -80,3 +80,24 @@ def test_top_n_solo_usa_interacciones_de_la_base(recomendador_de_prueba):
 
 def test_top_populares_coincide_con_top_n_para_usuario_nuevo(recomendador_de_prueba):
     assert ids(recomendador_de_prueba.top_populares(3)) == ids(recomendador_de_prueba.recomendador_top_n(99))[:3]
+
+
+def test_reemplazar_en_lote_cambia_solo_esa_receta(recomendador_de_prueba):
+    rec, _ = recomendador_de_prueba.recomendar_lote(99, N=3)  # usuario nuevo
+    antes = ids(rec)
+    elegida = antes[1]
+    recomendador_de_prueba.insertar_interaccion(99, elegida, 5)
+    nueva = recomendador_de_prueba.reemplazar_en_lote(99, elegida)
+    despues = ids(recomendador_de_prueba.recomendar_lote(99, N=3)[0])
+    assert despues[0] == antes[0] and despues[2] == antes[2]  # las otras quedan igual
+    assert despues[1] == nueva["id"]
+    assert nueva["id"] not in antes  # no repite ninguna del lote
+
+
+def test_recetas_vistas_permite_volver_a_verlas(recomendador_de_prueba):
+    rec, _ = recomendador_de_prueba.recomendar_lote(99, N=3)
+    recomendador_de_prueba.insertar_interaccion(99, ids(rec)[0], 4)
+    vistas = recomendador_de_prueba.recetas_vistas(99)
+    assert set(ids(vistas)) == set(ids(rec))
+    ratings = {r["id"]: r["mi_rating"] for r in vistas}
+    assert ratings[ids(rec)[0]] == 4 and ratings[ids(rec)[1]] is None

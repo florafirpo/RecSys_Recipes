@@ -156,6 +156,52 @@ def recomendar_lote(id_lector, N=10, nuevo=False):
     return rec, algoritmo
 
 
+def reemplazar_en_lote(id_lector, id_receta):
+    """Saca UNA receta del lote actual (por ejemplo, la que el usuario acaba
+    de abrir y valorar) y pone en su lugar una recomendacion nueva, en la
+    misma posicion. Las otras recetas del lote quedan como estaban.
+    La nueva sale de recomendar(): como las recetas del lote ya estan en
+    'vistos', no se repite ninguna. Si el usuario acaba de llegar a 3
+    valoradas, la nueva ya viene de EASE.
+    Devuelve la receta nueva, o None si id_receta no estaba en el lote."""
+    asegurar_tabla_lote()
+    filas = sql_select(
+        "SELECT posicion FROM lote_actual WHERE id_lector = ? AND id_receta = ?",
+        [id_lector, id_receta],
+    )
+    if not filas:
+        return None
+    posicion = filas[0]["posicion"]
+
+    nuevas, _ = recomendar(id_lector, N=1)  # la registra como vista
+    if not nuevas:
+        # No quedan recetas sin ver: se saca la receta del lote y listo
+        sql_execute("DELETE FROM lote_actual WHERE id_lector = ? AND posicion = ?", [id_lector, posicion])
+        return None
+    nueva = nuevas[0]
+    sql_execute(
+        "UPDATE lote_actual SET id_receta = ? WHERE id_lector = ? AND posicion = ?",
+        [nueva["id"], id_lector, posicion],
+    )
+    return nueva
+
+
+def recetas_vistas(id_lector, N=50):
+    """Historial: las recetas que ya se le mostraron al usuario, de la mas
+    reciente a la mas vieja, para poder volver a verlas. Incluye su rating
+    si la valoro (None si no)."""
+    return sql_select("""
+        SELECT recetas.*, interacciones.rating AS mi_rating
+          FROM vistos
+          JOIN recetas ON recetas.id = vistos.id_receta
+          LEFT JOIN interacciones ON interacciones.id_lector = vistos.id_lector
+                                 AND interacciones.id_receta = vistos.id_receta
+         WHERE vistos.id_lector = ?
+         ORDER BY vistos.rowid DESC
+         LIMIT ?
+    """, [id_lector, N])
+
+
 ###
 
 def buscar_usuario_por_nombre(username):
