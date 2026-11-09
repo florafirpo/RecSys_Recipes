@@ -1,0 +1,324 @@
+/* ==========================================================================
+   Flor de Recetas — estilos
+   Pensado primero para el celular; las reglas @media agregan columnas en
+   pantallas más anchas. Todos los colores y medidas salen de las variables
+   de :root, así se cambian en un solo lugar.
+   ========================================================================== */
+
+:root {
+    --tinta: #2B2118;        /* títulos y texto fuerte */
+    --texto: #4A3F35;        /* texto común */
+    --suave: #6E6050;        /* texto secundario */
+    --crema: #FAF6EF;        /* fondo de la página */
+    --arena: #F1E8DA;        /* fondo de secciones y cajas */
+    --linea: #E3D5C2;        /* bordes */
+    --tomate: #B5452F;       /* color de acento: botones, estrellas */
+    --tomate-oscuro: #93361F;
+    --tomate-claro: #F6E3D9;
+
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Nunito Sans", Arial, sans-serif;
+
+    --radio: 14px;
+    --sombra: 0 1px 2px rgba(43, 33, 24, .06), 0 4px 16px rgba(43, 33, 24, .06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--crema);
+    color: var(--texto);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+h1, h2, h3 { color: var(--tinta); margin: 0; }
+h1, h2 { font-family: var(--serif); font-weight: 700; line-height: 1.15; }
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.4rem; }
+p { margin: 0; }
+a { color: var(--tomate-oscuro); }
+img { display: block; max-width: 100%; height: auto; }
+
+/* Se ve el foco al navegar con teclado */
+:focus-visible { outline: 3px solid var(--tomate); outline-offset: 2px; border-radius: 4px; }
+
+/* "Ir al contenido": solo aparece al navegar con teclado */
+.saltar {
+    position: absolute; left: -999px; top: 8px;
+    background: var(--tinta); color: var(--crema); padding: 8px 16px; border-radius: 8px; z-index: 10;
+}
+.saltar:focus { left: 8px; }
+
+/* --- Cabecera ------------------------------------------------------------ */
+
+.cabecera { border-bottom: 1px solid var(--linea); background: var(--crema); }
+.cabecera-interior {
+    max-width: 1200px; margin: 0 auto; padding: 14px 16px;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px;
+}
+.marca {
+    font-family: var(--serif); font-weight: 700; font-size: 1.5rem;
+    color: var(--tinta); text-decoration: none;
+}
+.nav { display: flex; align-items: center; gap: 4px 18px; flex-wrap: wrap; }
+.nav a {
+    color: var(--texto); text-decoration: none; font-weight: 600;
+    padding: 6px 2px; border-bottom: 2px solid transparent;
+}
+.nav a:hover { color: var(--tinta); }
+.nav a[aria-current="page"] { color: var(--tinta); border-bottom-color: var(--tomate); }
+.usuario { color: var(--suave); font-size: .95rem; }
+
+/* --- Aviso después de cada acción ------------------------------------------ */
+
+.aviso {
+    max-width: 1200px; margin: 16px auto 0; padding: 0 16px;
+    animation: aparecer .4s ease-out;
+}
+.aviso p {
+    background: var(--tinta); color: var(--crema);
+    padding: 12px 18px; border-radius: var(--radio);
+}
+.aviso strong { color: #F2B8A4; }
+
+@keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* --- Estructura general ---------------------------------------------------- */
+
+.pagina { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+.seccion { margin-bottom: 48px; }
+.seccion-alterna { background: var(--arena); border-radius: 20px; padding: 24px 16px; }
+.seccion-cabecera { margin-bottom: 20px; max-width: 46rem; }
+.seccion-cabecera p { margin-top: 8px; color: var(--suave); }
+
+.miga { margin-bottom: 16px; }
+.miga a { text-decoration: none; font-weight: 600; }
+
+/* --- Botones --------------------------------------------------------------- */
+
+.boton, .boton-secundario, .boton-chico, .boton-texto {
+    font-family: var(--sans); font-weight: 700; font-size: 1rem;
+    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; /* área táctil cómoda */
+}
+.boton {
+    background: var(--tomate); color: #fff; border: 0; border-radius: 999px; padding: 10px 22px;
+}
+.boton:hover { background: var(--tomate-oscuro); }
+.boton-secundario {
+    background: transparent; color: var(--tinta); border: 2px solid var(--tinta); border-radius: 999px; padding: 8px 20px;
+}
+.boton-secundario:hover, .boton-secundario.activo { background: var(--tinta); color: var(--crema); }
+.boton-texto { background: none; border: 0; color: var(--suave); text-decoration: underline; padding: 8px; }
+.boton-chico {
+    background: var(--crema); color: var(--tinta); border: 1px solid var(--linea);
+    border-radius: 999px; padding: 6px 12px; font-size: .9rem; width: 100%;
+}
+.boton-chico:hover { border-color: var(--tomate); color: var(--tomate-oscuro); }
+.boton-chico.activo { background: var(--tomate-claro); border-color: var(--tomate); color: var(--tomate-oscuro); }
+.boton-quieto { color: var(--suave); }
+
+.acciones { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 24px; }
+
+/* --- Progreso hacia la personalización ------------------------------------- */
+
+.progreso {
+    background: var(--arena); border-radius: var(--radio); padding: 14px 18px; margin-bottom: 20px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px;
+}
+.progreso-texto strong { color: var(--tinta); }
+.progreso-barra { display: flex; gap: 6px; }
+.progreso-barra span { width: 44px; height: 10px; border-radius: 999px; background: var(--linea); }
+.progreso-barra span.lleno { background: var(--tomate); }
+
+/* --- Grillas de tarjetas ----------------------------------------------------- */
+
+.grilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+/* La primera recomendación ocupa todo el ancho: es la destacada */
+.grilla-inicio .tarjeta-destacada { grid-column: 1 / -1; }
+
+.tarjeta {
+    background: #fff; border: 1px solid var(--linea); border-radius: var(--radio);
+    box-shadow: var(--sombra); overflow: hidden;
+    display: flex; flex-direction: column;
+}
+.tarjeta-enlace { color: inherit; text-decoration: none; flex: 1; display: flex; flex-direction: column; }
+.tarjeta-enlace:hover h3 { color: var(--tomate-oscuro); }
+.tarjeta-foto { position: relative; }
+.tarjeta-foto img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--arena); }
+.tarjeta-destacada .tarjeta-foto img { aspect-ratio: 16 / 9; }
+
+.tarjeta-texto { padding: 12px 14px 8px; display: flex; flex-direction: column; gap: 6px; }
+.tarjeta h3 {
+    font-family: var(--sans); font-size: 1rem; font-weight: 700; line-height: 1.3;
+    /* el título ocupa como máximo 2 líneas: todas las tarjetas quedan parejas */
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tarjeta-destacada h3 { font-family: var(--serif); font-size: 1.5rem; }
+
+.etiqueta {
+    align-self: flex-start; font-size: .8rem; font-weight: 700; letter-spacing: .02em;
+    color: var(--tomate-oscuro); background: var(--tomate-claro); padding: 2px 10px; border-radius: 999px;
+}
+.datos { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--suave); font-size: .9rem; }
+.por-que { font-size: .9rem; color: var(--texto); border-left: 3px solid var(--tomate); padding-left: 8px; }
+.por-que em { font-style: normal; font-weight: 700; }
+.mi-valoracion { font-size: .9rem; color: var(--tomate-oscuro); font-weight: 700; }
+
+/* En tarjetas angostas los botones van uno arriba del otro; en pantallas grandes, lado a lado */
+.tarjeta-acciones { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 8px 12px 12px; }
+.tarjeta-destacada .tarjeta-acciones { grid-template-columns: 1fr 1fr; }
+
+.puesto {
+    position: absolute; top: 10px; left: 10px;
+    background: var(--tinta); color: var(--crema); font-weight: 700;
+    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: .9rem;
+}
+.sello {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--tomate); color: #fff; font-weight: 700; font-size: .85rem;
+    padding: 3px 10px; border-radius: 999px;
+}
+/* La receta recién agregada se resalta un momento */
+.tarjeta-nueva { border-color: var(--tomate); animation: resaltar 1.6s ease-out 2; }
+@keyframes resaltar {
+    0% { box-shadow: 0 0 0 0 rgba(181, 69, 47, .45); }
+    100% { box-shadow: 0 0 0 14px rgba(181, 69, 47, 0); }
+}
+
+/* --- Estado vacío ------------------------------------------------------------ */
+
+.vacio {
+    text-align: center; background: var(--arena); border-radius: 20px; padding: 40px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.vacio img { border-radius: 12px; }
+.vacio p { color: var(--suave); max-width: 30rem; }
+
+/* --- Página de una receta ---------------------------------------------------- */
+
+.receta { display: grid; grid-template-columns: 1fr; gap: 28px; }
+.receta-foto { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 20px; background: var(--arena); }
+.receta-resumen { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+.receta-resumen h1 { font-size: 2rem; }
+.descripcion { font-family: var(--serif); font-size: 1.15rem; color: var(--texto); }
+.receta-acciones { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+
+.receta-lateral { display: flex; flex-direction: column; gap: 20px; }
+.valoracion, .ingredientes-caja { background: #fff; border: 1px solid var(--linea); border-radius: 20px; padding: 20px; }
+.valoracion { border: 2px solid var(--tomate); }
+.valoracion p { color: var(--suave); margin-top: 4px; }
+
+/* Estrellas: en el HTML van de 1 a 5. Al pasar el mouse se pintan la
+   elegida y las anteriores; las que siguen vuelven a gris. */
+.estrellas { display: flex; gap: 4px; margin-top: 12px; }
+.estrellas button {
+    background: none; border: 0; cursor: pointer;
+    font-size: 2.2rem; line-height: 1; color: var(--linea);
+    min-width: 48px; min-height: 48px; padding: 0;
+}
+.estrellas button.llena { color: var(--tomate); }
+.estrellas:hover button { color: var(--tomate); }
+.estrellas button:hover ~ button { color: var(--linea); }
+.estrellas-leyenda {
+    display: flex; justify-content: space-between; max-width: 260px;
+    font-size: .85rem; color: var(--suave);
+}
+
+.ingredientes { margin: 12px 0 0; padding: 0; list-style: none; }
+.ingredientes li { padding: 8px 0; border-bottom: 1px solid var(--arena); }
+.ingredientes li:last-child { border-bottom: 0; }
+
+/* --- Pestañas de "Ya vistas" -------------------------------------------------- */
+
+.pestanias { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 4px; }
+.pestanias a {
+    white-space: nowrap; text-decoration: none; font-weight: 700; color: var(--texto);
+    border: 1px solid var(--linea); border-radius: 999px; padding: 8px 16px; background: #fff;
+}
+.pestanias a[aria-current="page"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+
+/* --- Entrada (login) ------------------------------------------------------------ */
+
+.entrada { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: center; padding-top: 16px; }
+.entrada h1 { font-size: 2.4rem; }
+.entrada-bajada { margin-top: 12px; font-size: 1.1rem; }
+.entrada-form { margin-top: 24px; }
+.entrada-form label { display: block; font-weight: 700; color: var(--tinta); margin-bottom: 6px; }
+.entrada-fila { display: flex; gap: 10px; flex-wrap: wrap; }
+.entrada-fila input {
+    flex: 1; min-width: 200px; min-height: 48px; padding: 10px 16px;
+    font: inherit; border: 2px solid var(--linea); border-radius: 999px; background: #fff;
+}
+.entrada-fila input:focus { border-color: var(--tomate); outline: none; }
+.nota { margin-top: 12px; color: var(--suave); font-size: .95rem; }
+.entrada-fotos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.entrada-fotos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radio); }
+.entrada-fotos img:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
+
+/* --- Bienvenida: elegir recetas -------------------------------------------------- */
+
+.opcion {
+    position: relative; cursor: pointer; background: #fff;
+    border: 2px solid var(--linea); border-radius: var(--radio); overflow: hidden;
+    display: flex; flex-direction: column;
+}
+.opcion input { position: absolute; opacity: 0; }
+.opcion img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.opcion-texto { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.opcion-titulo { font-weight: 700; color: var(--tinta); line-height: 1.3; }
+.opcion-marca {
+    position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1.1rem;
+    background: rgba(250, 246, 239, .9); color: var(--linea);
+}
+.opcion:has(input:checked) { border-color: var(--tomate); box-shadow: 0 0 0 3px var(--tomate-claro); }
+.opcion:has(input:checked) .opcion-marca { background: var(--tomate); color: #fff; }
+.opcion:has(input:focus-visible) { outline: 3px solid var(--tomate); outline-offset: 2px; }
+
+/* --- Pie ------------------------------------------------------------------------- */
+
+.pie {
+    border-top: 1px solid var(--linea); color: var(--suave); font-size: .9rem;
+    max-width: 1200px; margin: 0 auto; padding: 20px 16px 32px;
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
+}
+
+/* ==========================================================================
+   Pantallas medianas y grandes
+   ========================================================================== */
+
+@media (min-width: 720px) {
+    h1 { font-size: 2.3rem; }
+    .pagina { padding: 32px 24px 64px; }
+    .cabecera-interior, .pie, .aviso { padding-left: 24px; padding-right: 24px; }
+    .grilla { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .seccion-alterna { padding: 32px; }
+
+    /* Destacada: ancho completo, foto a la izquierda y texto a la derecha.
+       Debajo quedan las otras 9 en 3 columnas parejas. */
+    .grilla-inicio .tarjeta-destacada { position: relative; }
+    .tarjeta-destacada .tarjeta-enlace { flex-direction: row; }
+    .tarjeta-destacada .tarjeta-foto { flex: 0 0 58%; }
+    .tarjeta-destacada .tarjeta-foto img { height: 100%; aspect-ratio: 16 / 10; }
+    .tarjeta-destacada .tarjeta-texto { padding: 28px 28px 96px; gap: 10px; justify-content: center; }
+    .tarjeta-destacada h3 { font-size: 2rem; -webkit-line-clamp: 3; }
+    .tarjeta-destacada .datos, .tarjeta-destacada .por-que { font-size: 1rem; }
+    .tarjeta-destacada .tarjeta-acciones { position: absolute; right: 0; bottom: 0; width: 42%; padding: 0 28px 28px; }
+}
+
+@media (min-width: 1024px) {
+    .grilla { grid-template-columns: repeat(4, 1fr); }
+    .grilla-inicio { grid-template-columns: repeat(3, 1fr); }   /* 1 destacada + 9 = 3 filas justas */
+    .tarjeta-acciones { grid-template-columns: 1fr 1fr; }
+    .seccion-alterna .grilla { grid-template-columns: repeat(5, 1fr); }  /* 10 populares = 2 filas */
+
+    .receta { grid-template-columns: 1.4fr 1fr; align-items: start; }
+    .receta-lateral { position: sticky; top: 24px; }
+
+    .entrada { grid-template-columns: 1fr 1fr; gap: 56px; padding-top: 40px; }
+    .entrada h1 { font-size: 3rem; }
+}

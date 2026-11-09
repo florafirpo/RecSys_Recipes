@@ -101,3 +101,56 @@ def test_recetas_vistas_permite_volver_a_verlas(recomendador_de_prueba):
     assert set(ids(vistas)) == set(ids(rec))
     ratings = {r["id"]: r["mi_rating"] for r in vistas}
     assert ratings[ids(rec)[0]] == 4 and ratings[ids(rec)[1]] is None
+
+
+def test_me_tienta_cuenta_para_salir_del_cold_start(recomendador_de_prueba):
+    r = recomendador_de_prueba
+    for receta in (10, 13, 15):
+        r.marcar_senal(60, receta, "tienta")
+    rec, algoritmo = r.recomendar(60, N=2, registrar_vistos=False)
+    assert algoritmo.startswith("ease")
+    assert not {10, 13, 15} & set(ids(rec))  # lo guardado no se recomienda de nuevo
+
+
+def test_no_es_para_mi_no_se_vuelve_a_recomendar(recomendador_de_prueba):
+    r = recomendador_de_prueba
+    primera = ids(r.recomendador_top_n(61))[0]
+    r.marcar_senal(61, primera, "no")
+    assert primera not in ids(r.recomendador_top_n(61))
+
+
+def test_me_tienta_funciona_como_boton_on_off(recomendador_de_prueba):
+    r = recomendador_de_prueba
+    assert r.marcar_senal(62, 10, "tienta") == "tienta"
+    assert r.marcar_senal(62, 10, "tienta") is None
+    assert r.mi_senal(62, 10) is None
+
+
+def test_explicaciones_nombran_una_receta_valorada(recomendador_de_prueba):
+    r = recomendador_de_prueba
+    for receta in (10, 13, 15):
+        r.insertar_interaccion(63, receta, 5)
+    rec, _ = r.recomendar(63, N=2, registrar_vistos=False)
+    por_que = r.explicaciones(63, ids(rec))
+    assert por_que  # al menos una explicacion
+    assert set(por_que.values()) <= {"Receta 10", "Receta 13", "Receta 15"}
+    assert r.explicaciones(64, ids(rec)) == {}  # usuario sin historial: sin explicacion
+
+
+def test_populares_variadas_no_repite_categoria(recomendador_de_prueba):
+    elegidas = recomendador_de_prueba.populares_variadas(N=12)
+    categorias = [e["category"] for e in elegidas]
+    assert len(categorias) == len(set(categorias))
+
+
+def test_historial_con_filtros(recomendador_de_prueba):
+    r = recomendador_de_prueba
+    rec, _ = r.recomendar_lote(65, N=3)
+    a, b, c = ids(rec)
+    r.insertar_interaccion(65, a, 5)
+    r.marcar_senal(65, b, "tienta")
+    assert ids(r.recetas_vistas(65, filtro="valoradas")) == [a]
+    assert ids(r.recetas_vistas(65, filtro="guardadas")) == [b]
+    assert set(ids(r.recetas_vistas(65, filtro="pendientes"))) == {b, c}
+    r.reset_usuario(65)
+    assert r.recetas_vistas(65, filtro="guardadas") == []

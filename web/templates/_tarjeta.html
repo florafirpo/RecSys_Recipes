@@ -1,0 +1,58 @@
+{#
+  Tarjeta de una receta. Se usa en el inicio, en "Ya vistas" y en las populares.
+  Parametros:
+    receta, id_usuario, volver (a donde vuelven los botones rapidos)
+    por_que        : texto "Porque te gustó ..." (o None)
+    n_ingredientes : cantidad de ingredientes (o None)
+    guardada       : si ya la marco "Me tienta"
+    destacada      : la primera del inicio, mas grande
+    nueva          : recien agregada (se resalta)
+    numero         : puesto en el ranking (solo en "Las más populares")
+    mi_rating      : sus estrellas (en "Ya vistas")
+    acciones       : mostrar los botones rapidos
+#}
+{% macro tarjeta(receta, id_usuario, volver, por_que=None, n_ingredientes=None, guardada=False,
+                 destacada=False, nueva=False, numero=None, mi_rating=None, acciones=True) %}
+<article class="tarjeta{% if destacada %} tarjeta-destacada{% endif %}{% if nueva %} tarjeta-nueva{% endif %}">
+    <a class="tarjeta-enlace" href="/receta/{{ id_usuario }}/{{ receta['id'] }}">
+        <div class="tarjeta-foto">
+            <img src="{{ receta['primary_image_url'] or url_for('static', filename='sin-imagen.svg') }}"
+                 alt="" loading="lazy" width="400" height="300">
+            {% if numero %}<span class="puesto" aria-label="Puesto {{ numero }}">{{ numero }}</span>{% endif %}
+            {% if nueva %}<span class="sello">Nueva</span>{% endif %}
+        </div>
+        <div class="tarjeta-texto">
+            {% if receta["category"] %}
+            <span class="etiqueta">{{ receta["category"]|castellano }}</span>
+            {% endif %}
+            <h3>{{ receta["title"] }}</h3>
+            <p class="datos">
+                {% if receta["rating_value"] %}<span>★ {{ "%.1f"|format(receta["rating_value"]) }}</span>{% endif %}
+                {% if n_ingredientes %}<span>{{ n_ingredientes }} ingredientes</span>{% endif %}
+            </p>
+            {% if mi_rating %}
+            <p class="mi-valoracion">Tu valoración: <span aria-label="{{ mi_rating }} de 5">{{ "★" * mi_rating }}</span></p>
+            {% endif %}
+            {% if por_que %}
+            <p class="por-que">Porque te gustó <em>{{ por_que }}</em></p>
+            {% endif %}
+        </div>
+    </a>
+    {% if acciones %}
+    <div class="tarjeta-acciones">
+        <form method="POST" action="/senal/{{ id_usuario }}/{{ receta['id'] }}">
+            <input type="hidden" name="tipo" value="tienta">
+            <input type="hidden" name="volver" value="{{ volver }}">
+            <button type="submit" class="boton-chico{% if guardada %} activo{% endif %}" aria-pressed="{{ 'true' if guardada else 'false' }}">
+                {% if guardada %}♥ Guardada{% else %}♡ Me tienta{% endif %}
+            </button>
+        </form>
+        <form method="POST" action="/senal/{{ id_usuario }}/{{ receta['id'] }}">
+            <input type="hidden" name="tipo" value="no">
+            <input type="hidden" name="volver" value="{{ volver }}">
+            <button type="submit" class="boton-chico boton-quieto">No es para mí</button>
+        </form>
+    </div>
+    {% endif %}
+</article>
+{% endmacro %}

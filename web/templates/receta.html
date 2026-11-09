@@ -1,71 +1,77 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ receta["title"] }} — Flor de Recetas</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="pagina">
-        <div class="masthead">
-            <a class="marca" href="/recomendar/{{ id_usuario }}">Flor de Recetas</a>
-            <div class="tagline">Recomendaciones hechas a tu medida</div>
-        </div>
-        <hr class="regla">
-        <div class="nav">
-            <div class="enlaces">
-                <a href="/recomendar/{{ id_usuario }}">← Volver a mis recomendaciones</a>
-                <a href="/vistas/{{ id_usuario }}">Ya vistas</a>
-            </div>
-            <div class="usuario">Hola, <strong>{{ username }}</strong></div>
-        </div>
-        <hr class="regla-suave">
+{% extends "base.html" %}
 
-        <div class="receta-cabecera" style="margin-top: 2.5rem;">
+{% block titulo %}{{ receta["title"] }} — Flor de Recetas{% endblock %}
+
+{% block contenido %}
+<p class="miga"><a href="/recomendar/{{ id_usuario }}">← Volver a mis recetas</a></p>
+
+<article class="receta">
+    <div class="receta-principal">
+        <img class="receta-foto"
+             src="{{ receta['primary_image_url'] or url_for('static', filename='sin-imagen.svg') }}"
+             alt="{{ receta['title'] }}" width="800" height="600">
+
+        <div class="receta-resumen">
             {% if receta["category"] %}
-            <span class="etiqueta">{{ receta["category"] }}</span>
+            <span class="etiqueta">{{ receta["category"]|castellano }}</span>
             {% endif %}
             <h1>{{ receta["title"] }}</h1>
-            {% if receta["author_name"] %}
-            <div class="meta">Receta de {{ receta["author_name"] }}</div>
+            <p class="datos">
+                {% if receta["author_name"] %}<span>Receta de {{ receta["author_name"] }}</span>{% endif %}
+                {% if receta["rating_value"] %}<span>★ {{ "%.1f"|format(receta["rating_value"]) }} en food.com</span>{% endif %}
+                {% if ingredientes %}<span>{{ ingredientes|length }} ingredientes</span>{% endif %}
+            </p>
+            {% if receta["description"] %}
+            <p class="descripcion">“{{ receta["description"] }}”</p>
             {% endif %}
+
+            <div class="receta-acciones">
+                {% if receta["url"] %}
+                <a class="boton" href="{{ receta['url'] }}" target="_blank" rel="noopener">Ver la preparación en food.com ↗</a>
+                {% endif %}
+                <form method="POST" action="/senal/{{ id_usuario }}/{{ receta['id'] }}">
+                    <input type="hidden" name="tipo" value="tienta">
+                    <input type="hidden" name="volver" value="{{ volver }}">
+                    <button type="submit" class="boton-secundario{% if mi_senal == 'tienta' %} activo{% endif %}"
+                            aria-pressed="{{ 'true' if mi_senal == 'tienta' else 'false' }}">
+                        {% if mi_senal == 'tienta' %}♥ Guardada{% else %}♡ Me tienta{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <aside class="receta-lateral">
+        <div class="valoracion">
+            {% if mi_rating %}
+            <h2>Tu valoración: {{ mi_rating }} de 5</h2>
+            <p>Si la volviste a cocinar, podés cambiarla.</p>
+            {% else %}
+            <h2>¿La cocinaste?</h2>
+            <p>Contanos qué te pareció. Usamos tu valoración para elegir tus próximas recetas.</p>
+            {% endif %}
+            <form method="POST" action="/receta/{{ id_usuario }}/{{ receta['id'] }}">
+                <div class="estrellas">
+                    <button type="submit" name="rating" value="1" aria-label="1 de 5: no me gustó" class="{% if mi_rating and mi_rating >= 1 %}llena{% endif %}">★</button>
+                    <button type="submit" name="rating" value="2" aria-label="2 de 5: regular" class="{% if mi_rating and mi_rating >= 2 %}llena{% endif %}">★</button>
+                    <button type="submit" name="rating" value="3" aria-label="3 de 5: estuvo bien" class="{% if mi_rating and mi_rating >= 3 %}llena{% endif %}">★</button>
+                    <button type="submit" name="rating" value="4" aria-label="4 de 5: muy buena" class="{% if mi_rating and mi_rating >= 4 %}llena{% endif %}">★</button>
+                    <button type="submit" name="rating" value="5" aria-label="5 de 5: me encantó" class="{% if mi_rating and mi_rating >= 5 %}llena{% endif %}">★</button>
+                </div>
+                <p class="estrellas-leyenda"><span>No me gustó</span><span>Me encantó</span></p>
+            </form>
         </div>
 
-        {% if receta["primary_image_url"] %}
-        <img class="receta-imagen" src="{{ receta['primary_image_url'] }}" alt="{{ receta['title'] }}">
-        {% else %}
-        <img class="receta-imagen" src="https://via.placeholder.com/1000x440?text=Sin+imagen" alt="Sin imagen">
-        {% endif %}
-
-        <div class="receta-cuerpo">
-            {% if receta["description"] %}
-            <div class="descripcion">“{{ receta["description"] }}”</div>
-            {% endif %}
-
-            {% if ingredientes %}
+        {% if ingredientes %}
+        <div class="ingredientes-caja">
             <h2>Ingredientes</h2>
             <ul class="ingredientes">
                 {% for ingrediente in ingredientes %}
                 <li>{{ ingrediente }}</li>
                 {% endfor %}
             </ul>
-            {% endif %}
         </div>
-
-        <div class="valoracion">
-            <p>¿Ya la probaste? Contanos qué te pareció</p>
-            <form method="POST" action="/receta/{{ id_usuario }}/{{ receta['id'] }}">
-                <div class="estrellas">
-                    <button type="submit" name="rating" value="5" title="5 estrellas">★</button>
-                    <button type="submit" name="rating" value="4" title="4 estrellas">★</button>
-                    <button type="submit" name="rating" value="3" title="3 estrellas">★</button>
-                    <button type="submit" name="rating" value="2" title="2 estrellas">★</button>
-                    <button type="submit" name="rating" value="1" title="1 estrella">★</button>
-                </div>
-            </form>
-            <div class="gracias">Elegí una estrella para guardar tu valoración</div>
-        </div>
-    </div>
-</body>
-</html>
+        {% endif %}
+    </aside>
+</article>
+{% endblock %}

@@ -1,63 +1,49 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Flor de Recetas — Ya vistas</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="pagina">
-        <div class="masthead">
-            <a class="marca" href="/recomendar/{{ id_usuario }}">Flor de Recetas</a>
-            <div class="tagline">Recomendaciones hechas a tu medida</div>
-        </div>
-        <hr class="regla">
-        <div class="nav">
-            <div class="enlaces">
-                <a href="/recomendar/{{ id_usuario }}">← Volver a mis recomendaciones</a>
-            </div>
-            <div class="usuario">Hola, <strong>{{ username }}</strong></div>
-        </div>
-        <hr class="regla-suave">
+{% extends "base.html" %}
+{% from "_tarjeta.html" import tarjeta %}
 
-        <div class="seccion">
-            <div class="seccion-cabecera">
-                <h2>Recetas que ya viste</h2>
-                <p>De la más reciente a la más vieja, para volver a las que te quedaron pendientes</p>
-            </div>
+{% block titulo %}Ya vistas — Flor de Recetas{% endblock %}
 
-            {% if recetas %}
-            <div class="grilla">
-                {% for receta in recetas %}
-                <a class="tarjeta" href="/receta/{{ id_usuario }}/{{ receta['id'] }}">
-                    {% if receta["primary_image_url"] %}
-                    <img class="imagen" src="{{ receta['primary_image_url'] }}" alt="{{ receta['title'] }}">
-                    {% else %}
-                    <img class="imagen" src="https://via.placeholder.com/400x300?text=Sin+imagen" alt="Sin imagen">
-                    {% endif %}
-                    <div class="tarjeta-contenido">
-                        {% if receta["category"] %}
-                        <span class="etiqueta">{{ receta["category"] }}</span>
-                        {% endif %}
-                        <h3>{{ receta["title"] }}</h3>
-                        {% if receta["mi_rating"] %}
-                        <div class="meta">Tu valoración: {{ "★" * receta["mi_rating"] }}</div>
-                        {% else %}
-                        <div class="meta">Sin valorar todavía</div>
-                        {% endif %}
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="mensaje-vacio">Todavía no viste ninguna receta.</p>
-            {% endif %}
-        </div>
-
-        <div class="pie">
-            Flor de Recetas — hecho con lo que cocina la comunidad
-        </div>
+{% block contenido %}
+<section class="seccion" aria-labelledby="titulo-vistas">
+    <div class="seccion-cabecera">
+        <h1 id="titulo-vistas">Recetas que ya viste</h1>
+        <p>Volvé a las que te quedaron pendientes o a las que guardaste.</p>
     </div>
-</body>
-</html>
+
+    <nav class="pestanias" aria-label="Filtrar">
+        {% for clave, nombre in filtros %}
+        <a href="/vistas/{{ id_usuario }}?filtro={{ clave }}" {% if clave == filtro %}aria-current="page"{% endif %}>{{ nombre }}</a>
+        {% endfor %}
+    </nav>
+
+    {% if recetas %}
+    <div class="grilla">
+        {% for receta in recetas %}
+        {{ tarjeta(receta, id_usuario, volver,
+                   n_ingredientes=n_ingredientes.get(receta['id']),
+                   guardada=receta['id'] in guardadas,
+                   mi_rating=receta['mi_rating'],
+                   acciones=(receta['mi_senal'] != 'no')) }}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="vacio">
+        <img src="{{ url_for('static', filename='sin-imagen.svg') }}" alt="" width="120" height="90">
+        {% if filtro == "guardadas" %}
+        <h2>Todavía no guardaste recetas</h2>
+        <p>Tocá <strong>♡ Me tienta</strong> en las que te gusten y las vas a encontrar acá.</p>
+        {% elif filtro == "valoradas" %}
+        <h2>Todavía no valoraste recetas</h2>
+        <p>Cuando cocines una, contanos qué te pareció desde su página.</p>
+        {% elif filtro == "pendientes" %}
+        <h2>No tenés recetas pendientes</h2>
+        <p>Valoraste todo lo que viste.</p>
+        {% else %}
+        <h2>Todavía no viste ninguna receta</h2>
+        <p>Tus recomendaciones te esperan en el inicio.</p>
+        {% endif %}
+        <a class="boton" href="/recomendar/{{ id_usuario }}">Ir a mis recetas</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

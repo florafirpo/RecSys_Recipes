@@ -93,6 +93,70 @@ def insertar_vistos(id_lector, id_recetas):
         sql_execute(query, [id_lector, id_receta])
 
 
+# ---------------------------------------------------------------------------
+# Señales livianas: "Me tienta" y "No es para mí"
+# ---------------------------------------------------------------------------
+# Valorar con estrellas pide haber cocinado la receta, y la mayoria de la
+# gente entra solo a mirar. Por eso hay dos señales mas livianas:
+#   - 'tienta': la guarda en "Guardadas" y cuenta como interes positivo
+#     (EASE la usa igual que una receta reseñada, y suma para salir del
+#     cold start).
+#   - 'no': no se la vuelve a recomendar.
+# Se guardan en la tabla 'senales', aparte de 'interacciones', para no
+# mezclarlas con las reseñas reales (que son las que usa la evaluacion).
+
+def asegurar_tabla_senales():
+    sql_execute("""
+        CREATE TABLE IF NOT EXISTS senales (
+            id_lector INTEGER,
+            id_receta INTEGER,
+            tipo TEXT,
+            fecha TEXT,
+            PRIMARY KEY (id_lector, id_receta)
+        )
+    """)
+
+
+def marcar_senal(id_lector, id_receta, tipo):
+    """Guarda la señal ('tienta' o 'no'). Marcar 'tienta' sobre una receta
+    que ya estaba guardada la desguarda (funciona como un boton on/off)."""
+    asegurar_tabla_senales()
+    actual = mi_senal(id_lector, id_receta)
+    if tipo == "tienta" and actual == "tienta":
+        sql_execute("DELETE FROM senales WHERE id_lector = ? AND id_receta = ?", [id_lector, id_receta])
+        return None
+    sql_execute("""
+        INSERT INTO senales (id_lector, id_receta, tipo, fecha) VALUES (?, ?, ?, date('now'))
+        ON CONFLICT(id_lector, id_receta) DO UPDATE SET tipo = excluded.tipo, fecha = excluded.fecha;
+    """, [id_lector, id_receta, tipo])
+    return tipo
+
+
+def mi_senal(id_lector, id_receta):
+    """'tienta', 'no' o None."""
+    asegurar_tabla_senales()
+    filas = sql_select("SELECT tipo FROM senales WHERE id_lector = ? AND id_receta = ?", [id_lector, id_receta])
+    return filas[0]["tipo"] if filas else None
+
+
+def items_con_senal(id_lector, tipo):
+    asegurar_tabla_senales()
+    filas = sql_select("SELECT id_receta FROM senales WHERE id_lector = ? AND tipo = ?", [id_lector, tipo])
+    return [f["id_receta"] for f in filas]
+
+
+def items_positivos(id_lector):
+    """Lo que sabemos que le interesa: lo que valoro + lo que le tienta.
+    Es lo que usa EASE y lo que cuenta para salir del cold start."""
+    return set(items_valorados(id_lector)) | set(items_con_senal(id_lector, "tienta"))
+
+
+def mi_rating(id_lector, id_receta):
+    filas = sql_select("SELECT rating FROM interacciones WHERE id_lector = ? AND id_receta = ?",
+                       [id_lector, id_receta])
+    return filas[0]["rating"] if filas else None
+
+
 def insertar_interaccion(id_lector, id_receta, rating):
     query = """
         INSERT INTO interacciones (id_lector, id_receta, rating, fecha) VALUES (?, ?, ?, date('now'))
@@ -106,6 +170,8 @@ def insertar_interaccion(id_lector, id_receta, rating):
 def reset_usuario(id_lector):
     sql_execute("DELETE FROM vistos WHERE id_lector = ?", [id_lector])
     sql_execute("DELETE FROM interacciones WHERE id_lector = ?", [id_lector])
+    asegurar_tabla_senales()
+    sql_execute("DELETE FROM senales WHERE id_lector = ?", [id_lector])
     asegurar_tabla_lote()
     sql_execute("DELETE FROM lote_actual WHERE id_lector = ?", [id_lector])
 
@@ -186,17 +252,40 @@ def reemplazar_en_lote(id_lector, id_receta):
     return nueva
 
 
-def recetas_vistas(id_lector, N=50):
-    """Historial: las recetas que ya se le mostraron al usuario, de la mas
-    reciente a la mas vieja, para poder volver a verlas. Incluye su rating
-    si la valoro (None si no)."""
-    return sql_select("""
-        SELECT recetas.*, interacciones.rating AS mi_rating
+def recetas_vistas(id_lector, N=60, filtro="todas"):
+    """Historial para volver a ver recetas, de la mas reciente a la mas vieja.
+    Cada receta trae mi_rating (sus estrellas o None) y mi_senal.
+    filtro:
+      - 'todas'      : todo lo que se le mostro
+      - 'guardadas'  : las que marco "Me tienta" (aunque no se le hayan mostrado)
+      - 'pendientes' : las que se le mostraron y todavia no valoro
+      - 'valoradas'  : las que valoro con estrellas"""
+    asegurar_tabla_senales()
+    if filtro == "guardadas":
+        return sql_select("""
+            SELECT recetas.*, interacciones.rating AS mi_rating, senales.tipo AS mi_senal
+              FROM senales
+              JOIN recetas ON recetas.id = senales.id_receta
+              LEFT JOIN interacciones ON interacciones.id_lector = senales.id_lector
+                                     AND interacciones.id_receta = senales.id_receta
+             WHERE senales.id_lector = ? AND senales.tipo = 'tienta'
+             ORDER BY senales.rowid DESC
+             LIMIT ?
+        """, [id_lector, N])
+
+    condicion = {
+        "pendientes": "AND interacciones.rating IS NULL AND COALESCE(senales.tipo, '') <> 'no'",
+        "valoradas": "AND interacciones.rating IS NOT NULL",
+    }.get(filtro, "")
+    return sql_select(f"""
+        SELECT recetas.*, interacciones.rating AS mi_rating, senales.tipo AS mi_senal
           FROM vistos
           JOIN recetas ON recetas.id = vistos.id_receta
           LEFT JOIN interacciones ON interacciones.id_lector = vistos.id_lector
                                  AND interacciones.id_receta = vistos.id_receta
-         WHERE vistos.id_lector = ?
+          LEFT JOIN senales ON senales.id_lector = vistos.id_lector
+                           AND senales.id_receta = vistos.id_receta
+         WHERE vistos.id_lector = ? {condicion}
          ORDER BY vistos.rowid DESC
          LIMIT ?
     """, [id_lector, N])
@@ -258,14 +347,16 @@ def obtener_ingredientes(id_receta):
 ###
 
 def recomendador_azar(id_lector):
+    asegurar_tabla_senales()
     rec = sql_select("""
         SELECT *
           FROM recetas
          WHERE title IS NOT NULL
            AND id NOT IN (SELECT id_receta FROM interacciones WHERE id_lector = ?)
            AND id NOT IN (SELECT id_receta FROM vistos WHERE id_lector = ?)
+           AND id NOT IN (SELECT id_receta FROM senales WHERE id_lector = ?)
          ORDER BY RANDOM()
-    """, [id_lector, id_lector])
+    """, [id_lector, id_lector, id_lector])
     return rec
 
 
@@ -275,6 +366,8 @@ def recomendador_top_n(id_lector):
     # Antes usaba rating_value/rating_count de food.com, pero esos numeros
     # incluyen las reseñas que escondemos en test: era leakage y la
     # evaluacion de top_n quedaba inflada.
+    # Tampoco recomienda lo que ya tiene una señal (guardada o descartada).
+    asegurar_tabla_senales()
     rec = sql_select("""
         SELECT recetas.*
           FROM recetas
@@ -284,8 +377,9 @@ def recomendador_top_n(id_lector):
          WHERE title IS NOT NULL
            AND id NOT IN (SELECT id_receta FROM interacciones WHERE id_lector = ?)
            AND id NOT IN (SELECT id_receta FROM vistos WHERE id_lector = ?)
+           AND id NOT IN (SELECT id_receta FROM senales WHERE id_lector = ?)
          ORDER BY popularidad.puntos DESC, popularidad.cant DESC
-    """, [id_lector, id_lector])
+    """, [id_lector, id_lector, id_lector])
     return rec
 
 
@@ -294,6 +388,7 @@ def recomendador_perfil(id_lector):
     # (Con JOIN comun tenia que coincidir en las dos cosas, y como el 60% de
     # los autores firma una sola receta, casi todo quedaba afuera.)
     # COALESCE(x, 0) pone 0 cuando la receta no coincide en ese criterio.
+    asegurar_tabla_senales()
     rec = sql_select(f"""
         SELECT *, COALESCE(perfil_categoria.cant, 0)*0.8
                 + COALESCE(perfil_autor.cant, 0)*0.2 AS score -- 0.8 y 0.2 son hiperparametros
@@ -312,8 +407,9 @@ def recomendador_perfil(id_lector):
            AND title IS NOT NULL
            AND id NOT IN (SELECT id_receta FROM interacciones WHERE id_lector = ?)
            AND id NOT IN (SELECT id_receta FROM vistos WHERE id_lector = ?)
+           AND id NOT IN (SELECT id_receta FROM senales WHERE id_lector = ?)
          ORDER BY score DESC
-    """, [id_lector, id_lector, id_lector, id_lector])
+    """, [id_lector, id_lector, id_lector, id_lector, id_lector])
     return rec
 
 
@@ -379,11 +475,12 @@ def recomendador_ease(id_lector, cuantas=500):
     o ya vio. Solo devuelve recetas con puntaje positivo (relacionadas con
     algo que reseño); recomendar() completa con top_n si faltan."""
     modelo = modelo_ease()
-    valoradas = set(items_valorados(id_lector))
-    excluir = valoradas | set(items_vistos(id_lector))
+    positivas = items_positivos(id_lector)  # valoradas + "me tienta"
+    excluir = (positivas | set(items_valorados(id_lector)) | set(items_vistos(id_lector))
+               | set(items_con_senal(id_lector, "no")))
 
     x = np.zeros(len(modelo["recetas"]), dtype=np.float32)
-    for id_receta in valoradas:
+    for id_receta in positivas:
         if id_receta in modelo["columna_de"]:
             x[modelo["columna_de"][id_receta]] = 1
     puntajes = x @ modelo["B"]
@@ -401,6 +498,63 @@ def recomendador_ease(id_lector, cuantas=500):
     filas = sql_select(f"SELECT * FROM recetas WHERE id IN ({marcas})", elegidas)
     por_id = {f["id"]: f for f in filas}
     return [por_id[r] for r in elegidas]
+
+
+def explicaciones(id_lector, ids_recetas):
+    """Para cada receta recomendada, el titulo de la receta que el usuario
+    valoro (o guardo) que mas la "empujo" en EASE: el mayor peso B[i, j].
+    Sirve para mostrar "Porque te gustó ...". Devuelve {id_receta: titulo};
+    las recetas sin una razon clara quedan afuera."""
+    positivas = [r for r in items_positivos(id_lector)]
+    if len(positivas) <= MAX_VALORADAS_COLD_START or not ids_recetas:
+        return {}
+    modelo = modelo_ease()
+    columna_de = modelo["columna_de"]
+    filas_pos = [columna_de[r] for r in positivas if r in columna_de]
+    if not filas_pos:
+        return {}
+    por_que = {}
+    for id_receta in ids_recetas:
+        if id_receta not in columna_de:
+            continue
+        pesos = modelo["B"][filas_pos, columna_de[id_receta]]
+        mejor = int(np.argmax(pesos))
+        if pesos[mejor] > 0:
+            por_que[id_receta] = modelo["recetas"][filas_pos[mejor]]
+    if not por_que:
+        return {}
+    marcas = ",".join("?" * len(set(por_que.values())))
+    titulos = {f["id"]: f["title"] for f in
+               sql_select(f"SELECT id, title FROM recetas WHERE id IN ({marcas})", list(set(por_que.values())))}
+    return {r: titulos.get(origen) for r, origen in por_que.items() if titulos.get(origen)}
+
+
+def cantidad_ingredientes(ids_recetas):
+    """{id_receta: cantidad de ingredientes}, para mostrar en las tarjetas."""
+    if not ids_recetas:
+        return {}
+    marcas = ",".join("?" * len(ids_recetas))
+    filas = sql_select(f"""
+        SELECT recipe_id, COUNT(*) AS n FROM ingredientes
+         WHERE recipe_id IN ({marcas}) GROUP BY recipe_id
+    """, list(ids_recetas))
+    return {f["recipe_id"]: f["n"] for f in filas}
+
+
+def populares_variadas(N=12):
+    """Recetas populares de categorias distintas (una por categoria), para
+    que un usuario nuevo elija las que le tientan al entrar."""
+    populares = top_populares(N=300)
+    elegidas, categorias = [], set()
+    # Primero las que tienen foto (se eligen mirando); si faltan, el resto
+    for con_foto in (True, False):
+        for r in populares:
+            if len(elegidas) == N:
+                return elegidas
+            if bool(r["primary_image_url"]) == con_foto and r["category"] not in categorias:
+                elegidas.append(r)
+                categorias.add(r["category"])
+    return elegidas
 
 
 def top_populares(N=10):
@@ -424,7 +578,8 @@ def recomendar(id_lector, N=10, registrar_vistos=True):
     """Devuelve N recetas recomendadas para el usuario id_lector.
     Con registrar_vistos=False no marca las recetas como vistas
     (lo usa la evaluacion, para no modificar la base de entrenamiento)."""
-    cant_items_valorados = len(items_valorados(id_lector))
+    # Cuenta lo que valoro y lo que marco "Me tienta"
+    cant_items_valorados = len(items_positivos(id_lector))
 
     if cant_items_valorados <= MAX_VALORADAS_COLD_START:  # cold start
         rec = recomendador_top_n(id_lector)

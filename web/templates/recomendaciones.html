@@ -1,94 +1,72 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Flor de Recetas — Tus recomendaciones</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="pagina">
-        <div class="masthead">
-            <a class="marca" href="/recomendar/{{ id_usuario }}">Flor de Recetas</a>
-            <div class="tagline">Recomendaciones hechas a tu medida</div>
-        </div>
-        <hr class="regla">
-        <div class="nav">
-            <div class="enlaces">
-                <a href="/recomendar/{{ id_usuario }}">Inicio</a>
-                <a href="/vistas/{{ id_usuario }}">Ya vistas</a>
-                <a href="/reset/{{ id_usuario }}">Reiniciar historial</a>
-            </div>
-            <div class="usuario">Hola, <strong>{{ username }}</strong> &middot; {{ cant_valorados }} valoradas</div>
-        </div>
-        <hr class="regla-suave">
+{% extends "base.html" %}
+{% from "_tarjeta.html" import tarjeta %}
 
-        <div class="seccion">
-            <div class="seccion-cabecera">
-                <h2>Recetas para tu próxima comida</h2>
-                <p>Elegidas para vos, a partir de lo que valoraste</p>
-            </div>
+{% block titulo %}Tus recetas — Flor de Recetas{% endblock %}
 
-            {% if recetas_recomendadas %}
-            <div class="grilla">
-                {% for receta in recetas_recomendadas %}
-                <a class="tarjeta" href="/receta/{{ id_usuario }}/{{ receta['id'] }}">
-                    <span class="numero">{{ loop.index }}</span>
-                    {% if receta["primary_image_url"] %}
-                    <img class="imagen" src="{{ receta['primary_image_url'] }}" alt="{{ receta['title'] }}">
-                    {% else %}
-                    <img class="imagen" src="https://via.placeholder.com/400x300?text=Sin+imagen" alt="Sin imagen">
-                    {% endif %}
-                    <div class="tarjeta-contenido">
-                        {% if receta["category"] %}
-                        <span class="etiqueta">{{ receta["category"] }}</span>
-                        {% endif %}
-                        <h3>{{ receta["title"] }}</h3>
-                        {% if receta["author_name"] %}
-                        <div class="meta">Receta de {{ receta["author_name"] }}</div>
-                        {% endif %}
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-            <div class="acciones">
-                <a class="enlace-boton" href="/recomendar/{{ id_usuario }}?nuevas=1">Ver otras 10 recomendaciones →</a>
-            </div>
-            {% else %}
-            <p class="mensaje-vacio">Ya viste todo lo que tenemos para recomendarte por ahora.<br>
-                Podés <a class="enlace-discreto" href="/reset/{{ id_usuario }}">reiniciar tu historial</a> para volver a empezar.</p>
-            {% endif %}
+{% block contenido %}
+<section class="seccion" aria-labelledby="titulo-recetas">
+    <div class="seccion-cabecera">
+        {% if personalizado %}
+        <h1 id="titulo-recetas">Recetas para tu próxima comida</h1>
+        <p>Elegidas para vos, a partir de lo que valoraste y guardaste.</p>
+        {% else %}
+        <h1 id="titulo-recetas">Arrancamos por lo más popular</h1>
+        <p>Todavía no sabemos qué te gusta. Marcá <strong>♡ Me tienta</strong> o valorá recetas y empezamos a elegir para vos.</p>
+        {% endif %}
+    </div>
+
+    {% if not personalizado %}
+    <div class="progreso" role="group" aria-label="Progreso para personalizar">
+        <div class="progreso-texto">
+            <strong>{{ cant_positivas }} de {{ para_personalizar }}</strong> para personalizar tus recetas
         </div>
-
-        <div class="seccion">
-            <div class="seccion-cabecera">
-                <h2>Las recetas más populares</h2>
-                <p>Las mejor valoradas por toda la comunidad</p>
-            </div>
-            <div class="grilla">
-                {% for receta in recetas_populares %}
-                <a class="tarjeta" href="/receta/{{ id_usuario }}/{{ receta['id'] }}">
-                    <span class="numero">{{ loop.index }}</span>
-                    {% if receta["primary_image_url"] %}
-                    <img class="imagen" src="{{ receta['primary_image_url'] }}" alt="{{ receta['title'] }}">
-                    {% else %}
-                    <img class="imagen" src="https://via.placeholder.com/400x300?text=Sin+imagen" alt="Sin imagen">
-                    {% endif %}
-                    <div class="tarjeta-contenido">
-                        {% if receta["category"] %}
-                        <span class="etiqueta">{{ receta["category"] }}</span>
-                        {% endif %}
-                        <h3>{{ receta["title"] }}</h3>
-                        <div class="meta">★ {{ "%.1f"|format(receta["rating_value"] or 0) }} · {{ receta["rating_count"] }} valoraciones</div>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="pie">
-            Flor de Recetas — hecho con lo que cocina la comunidad &middot; <a href="/reset/{{ id_usuario }}">Reiniciar mi historial</a>
+        <div class="progreso-barra" aria-hidden="true">
+            {% for i in range(para_personalizar) %}
+            <span class="{% if i < cant_positivas %}lleno{% endif %}"></span>
+            {% endfor %}
         </div>
     </div>
-</body>
-</html>
+    {% endif %}
+
+    {% if recetas %}
+    <div class="grilla grilla-inicio">
+        {% for receta in recetas %}
+        {{ tarjeta(receta, id_usuario, volver,
+                   por_que=por_que.get(receta['id']),
+                   n_ingredientes=n_ingredientes.get(receta['id']),
+                   guardada=receta['id'] in guardadas,
+                   destacada=loop.first,
+                   nueva=(receta['id'] == nueva)) }}
+        {% endfor %}
+    </div>
+    <div class="acciones">
+        <a class="boton" href="/recomendar/{{ id_usuario }}?nuevas=1">Ver otras 10 recetas</a>
+        <a class="boton-secundario" href="/vistas/{{ id_usuario }}?filtro=guardadas">Mis guardadas</a>
+    </div>
+    {% else %}
+    <div class="vacio">
+        <img src="{{ url_for('static', filename='sin-imagen.svg') }}" alt="" width="120" height="90">
+        <h2>Ya viste todo lo que tenemos para recomendarte</h2>
+        <p>Podés volver a las recetas que te quedaron pendientes.</p>
+        <a class="boton" href="/vistas/{{ id_usuario }}?filtro=pendientes">Ver las que no valoré</a>
+    </div>
+    {% endif %}
+</section>
+
+{% if populares %}
+<section class="seccion seccion-alterna" aria-labelledby="titulo-populares">
+    <div class="seccion-cabecera">
+        <h2 id="titulo-populares">Las más populares de la comunidad</h2>
+        <p>Las recetas más reseñadas por quienes cocinan en food.com.</p>
+    </div>
+    <div class="grilla">
+        {% for receta in populares %}
+        {{ tarjeta(receta, id_usuario, volver,
+                   n_ingredientes=n_ingredientes.get(receta['id']),
+                   guardada=receta['id'] in guardadas,
+                   numero=loop.index, acciones=False) }}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

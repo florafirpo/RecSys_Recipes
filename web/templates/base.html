@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Flor de Recetas{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Nunito+Sans:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <a class="saltar" href="#contenido">Ir al contenido</a>
+
+    <header class="cabecera">
+        <div class="cabecera-interior">
+            {% if id_usuario %}
+            <a class="marca" href="/recomendar/{{ id_usuario }}">Flor de Recetas</a>
+            {% else %}
+            <a class="marca" href="/">Flor de Recetas</a>
+            {% endif %}
+
+            {% if id_usuario %}
+            <nav class="nav" aria-label="Principal">
+                <a href="/recomendar/{{ id_usuario }}" {% if activa == 'inicio' %}aria-current="page"{% endif %}>Inicio</a>
+                <a href="/vistas/{{ id_usuario }}" {% if activa == 'vistas' %}aria-current="page"{% endif %}>Ya vistas</a>
+                <span class="usuario">Hola, <strong>{{ username }}</strong></span>
+            </nav>
+            {% endif %}
+        </div>
+    </header>
+
+    {% if aviso %}
+    <div class="aviso" role="status">
+        <p>{{ aviso }}{% if personalizado and cant_positivas == para_personalizar %} <strong>¡Y ya personalizamos tus recetas!</strong>{% endif %}</p>
+    </div>
+    {% endif %}
+
+    <main id="contenido" class="pagina">
+        {% block contenido %}{% endblock %}
+    </main>
+
+    <footer class="pie">
+        <p>Flor de Recetas · recetas y reseñas de la comunidad de food.com</p>
+        {% if id_usuario %}
+        <form method="POST" action="/reset/{{ id_usuario }}"
+              onsubmit="return confirm('¿Seguro? Se borran tus valoraciones, tus guardadas y lo que ya viste.');">
+            <button type="submit" class="boton-texto">Reiniciar mi historial</button>
+        </form>
+        {% endif %}
+    </footer>
+</body>
+</html>

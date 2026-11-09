@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block titulo %}Bienvenida — Flor de Recetas{% endblock %}
+
+{% block contenido %}
+<section class="seccion" aria-labelledby="titulo-bienvenida">
+    <div class="seccion-cabecera">
+        <h1 id="titulo-bienvenida">¡Hola, {{ username }}! ¿Qué te tienta?</h1>
+        <p>Elegí al menos <strong>{{ para_personalizar }}</strong> recetas y armamos tus recomendaciones a partir de ellas.</p>
+    </div>
+
+    <form method="POST" action="/bienvenida/{{ id_usuario }}">
+        <div class="grilla grilla-elegir">
+            {% for receta in opciones %}
+            <label class="opcion">
+                <input type="checkbox" name="receta" value="{{ receta['id'] }}">
+                <img src="{{ receta['primary_image_url'] or url_for('static', filename='sin-imagen.svg') }}"
+                     alt="" loading="lazy" width="400" height="300">
+                <span class="opcion-texto">
+                    {% if receta["category"] %}<span class="etiqueta">{{ receta["category"]|castellano }}</span>{% endif %}
+                    <span class="opcion-titulo">{{ receta["title"] }}</span>
+                </span>
+                <span class="opcion-marca" aria-hidden="true">♥</span>
+            </label>
+            {% endfor %}
+        </div>
+        <div class="acciones">
+            <button type="submit" class="boton">Listo, ver mis recetas</button>
+            <a class="boton-texto" href="/recomendar/{{ id_usuario }}">Saltar por ahora</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
