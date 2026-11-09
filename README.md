@@ -309,6 +309,10 @@ Los tests usan bases de juguete en carpetas temporales: no tocan los datos reale
 
 La página web importa `recomendador.py`, que a su vez necesita `config.py`. Subí los dos archivos junto con la aplicación y apuntá a la base con una variable de entorno: `RECETAS_DB` (ruta completa a `recetas_app.db`) o `RECETAS_DATOS` (carpeta).
 
+**Código de la página:** carpeta `web/` (`app.py` + `templates/`). En PythonAnywhere van `app.py`, `templates/`, `recomendador.py` y `config.py` en la misma carpeta.
+
+**Cómo se comporta la tanda de recomendaciones.** Las 10 recetas se guardan (`lote_actual`): volver a la página muestra las mismas. Al valorar una receta, solo esa se reemplaza (`reemplazar_en_lote`), en el mismo lugar. "Ver otras 10" arma una tanda nueva sin repetir nada de lo ya visto, y "Ya vistas" (`/vistas/<usuario>`) muestra el historial con el puntaje de cada receta valorada.
+
 **Qué recomienda la página.** La página llama a `recomendar()`: con 2 recetas valoradas o menos usa popularidad (`top_n`), y desde la tercera usa **EASE**, completando con `top_n` si faltan recetas. Antes usaba `perfil`, que en la evaluación acertaba bastante menos (hit rate 20 % contra 51 %). En `python main.py evaluar` aparece como "recomendar (la pagina)" y da lo mismo que EASE.
 
 - El modelo se entrena una sola vez (0,8 s con la base actual) y queda en memoria. Recomendar tarda unas milésimas.
