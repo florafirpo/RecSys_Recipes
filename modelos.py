@@ -74,11 +74,7 @@ def puntajes_ease(X, lambda_):
     """EASE: B = pesos receta x receta, con diagonal en 0 (una receta no
     puede recomendarse a si misma). lambda_ es la regularizacion: cuanto
     mas alta, mas "suaves" quedan los pesos."""
-    G = X.T @ X + lambda_ * np.eye(X.shape[1])
-    P = np.linalg.inv(G)
-    B = -P / np.diag(P)
-    np.fill_diagonal(B, 0)
-    return X @ B
+    return X @ recomendador.pesos_ease(X, lambda_)  # la misma cuenta que usa la pagina
 
 
 def crear_estrategia(puntajes, X, usuarios, recetas):

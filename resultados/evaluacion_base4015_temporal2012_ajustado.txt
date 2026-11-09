@@ -1,17 +1,19 @@
 Evaluando 368 usuarios, N = 10
 
-estrategia                      hit rate@N    precision@N       recall@N            MRR         NDCG@N  con N recetas
-azar                                 0.076          0.008          0.005          0.024          0.009          1.000
-top_n                                0.236          0.036          0.026          0.090          0.042          1.000
-perfil                               0.130          0.015          0.010          0.048          0.018          1.000
-recomendar (perfil+top_n)            0.130          0.015          0.010          0.048          0.018          1.000
-user-kNN (k=100)                     0.253          0.040          0.031          0.105          0.049          1.000
-EASE (lambda=750)                    0.266          0.041          0.031          0.107          0.049          1.000
-populares recientes                  0.247          0.037          0.030          0.092          0.043          1.000
+estrategia                           hit rate@N    precision@N       recall@N            MRR         NDCG@N  con N recetas
+azar                                      0.075          0.008          0.005          0.023          0.009          1.000
+top_n                                     0.236          0.036          0.026          0.090          0.042          1.000
+perfil                                    0.130          0.015          0.010          0.048          0.018          1.000
+recomendar (la pagina)                    0.266          0.041          0.031          0.107          0.049          1.000
+perfil+top_n (pagina anterior)            0.130          0.015          0.010          0.048          0.018          1.000
+user-kNN (k=100)                          0.253          0.040          0.031          0.105          0.049          1.000
+EASE (lambda=750)                         0.266          0.041          0.031          0.107          0.049          1.000
+populares recientes                       0.247          0.037          0.030          0.092          0.043          1.000
 
 Diferencia de precision@N contra top_n (intervalo de confianza 95%, bootstrap pareado):
   perfil                       -0.021  [-0.030, -0.013]  significativa
-  recomendar (perfil+top_n)    -0.021  [-0.030, -0.013]  significativa
+  recomendar (la pagina)       +0.005  [+0.000, +0.010]  significativa
+  perfil+top_n (pagina anterior) -0.021  [-0.030, -0.013]  significativa
   user-kNN (k=100)             +0.004  [-0.001, +0.008]  no significativa
   EASE (lambda=750)            +0.005  [+0.000, +0.010]  significativa
   populares recientes          +0.001  [-0.006, +0.008]  no significativa

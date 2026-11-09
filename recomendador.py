@@ -2,7 +2,7 @@
 Recomendador de recetas, adaptado del esquema del profesor
 (libros -> recetas, interacciones, vistos) a tu base recetas_app.db.
 
-Tres estrategias, de menor a mayor personalizacion:
+Cuatro estrategias, de menor a mayor personalizacion:
   - recomendador_azar: baseline, recetas al azar entre las que el
     usuario no vio ni valoro todavia.
   - recomendador_top_n: popularidad -- recetas con mas puntos (suma de
@@ -11,10 +11,13 @@ Tres estrategias, de menor a mayor personalizacion:
     usuario segun que categorias y que autores le gustaron (valoro
     bien) en el pasado, y recomienda recetas de esas categorias/autores
     que todavia no probo.
+  - recomendador_ease: filtrado colaborativo con EASE (Steck, 2019). Es el
+    que mejor rindio en la evaluacion (ver README).
 
-recomendar() decide cual usar segun cuanto historial tiene el usuario
-(mismo patron del profesor: cold start -> top_n; con historial -> perfil,
-completando con top_n si hacen falta mas recomendaciones).
+recomendar() es la que usa la pagina y decide segun cuanto historial tiene
+el usuario: cold start -> top_n; con historial -> EASE, completando con
+top_n si hacen falta mas recomendaciones. (Antes usaba perfil, que en la
+evaluacion acertaba bastante menos: hit rate 20% contra 51% de EASE.)
 
 Por defecto trabaja sobre recetas_app.db (config.DB_APP). Para apuntar a
 otra base (por ejemplo recetas_train.db al evaluar) se puede definir la
@@ -24,6 +27,8 @@ desde codigo.
 
 import sqlite3
 import os
+
+import numpy as np
 
 import config
 
@@ -266,6 +271,92 @@ def recomendador_perfil(id_lector):
     return rec
 
 
+# ---------------------------------------------------------------------------
+# EASE
+# ---------------------------------------------------------------------------
+# EASE aprende una matriz B de pesos receta x receta: B[i, j] dice cuanto
+# "empuja" haber reseñado la receta i a reseñar la receta j. El puntaje de
+# un usuario para cada receta es la suma de las filas de B de las recetas
+# que reseño.
+#
+# Entrenar B (invertir una matriz de recetas x recetas) tarda un par de
+# segundos, asi que se hace una vez y se guarda en memoria (_modelo_ease).
+# Para recomendar no hace falta reentrenar: cada vez se leen de la base
+# las recetas que el usuario reseño hasta ese momento, asi que una
+# valoracion nueva en la pagina cambia sus recomendaciones enseguida.
+# B se vuelve a entrenar solo si cambia la base o si las interacciones
+# crecieron mas de un 5% desde el ultimo entrenamiento.
+
+_modelo_ease = {}
+CRECIMIENTO_PARA_REENTRENAR = 1.05
+
+
+def pesos_ease(X, lambda_):
+    """Matriz B de EASE para una matriz binaria X (usuarios x recetas).
+    lambda_ es la regularizacion: cuanto mas alta, mas suaves los pesos."""
+    G = X.T @ X + lambda_ * np.eye(X.shape[1])
+    P = np.linalg.inv(G)
+    B = -P / np.diag(P)
+    np.fill_diagonal(B, 0)  # una receta no se recomienda a si misma
+    return B
+
+
+def modelo_ease():
+    """Devuelve el modelo EASE entrenado con la base actual (lo entrena si hace falta)."""
+    cantidad = sql_select("SELECT COUNT(*) AS n FROM interacciones")[0]["n"]
+    modelo = _modelo_ease.get("modelo")
+    if (modelo is None or modelo["base"] != DATABASE_FILE
+            or cantidad > modelo["interacciones"] * CRECIMIENTO_PARA_REENTRENAR):
+        recetas = [r["id"] for r in sql_select("SELECT id FROM recetas WHERE title IS NOT NULL ORDER BY id")]
+        columna_de = {r: c for c, r in enumerate(recetas)}
+        filas = sql_select("SELECT id_lector, id_receta FROM interacciones")
+        usuarios = sorted({f["id_lector"] for f in filas})
+        fila_de = {u: f for f, u in enumerate(usuarios)}
+        X = np.zeros((len(usuarios), len(recetas)))
+        for f in filas:
+            if f["id_receta"] in columna_de:
+                X[fila_de[f["id_lector"]], columna_de[f["id_receta"]]] = 1
+        modelo = {
+            "base": DATABASE_FILE,
+            "interacciones": cantidad,
+            "recetas": recetas,
+            "columna_de": columna_de,
+            # float32 ocupa la mitad de memoria y alcanza para ordenar
+            "B": pesos_ease(X, config.LAMBDA_EASE).astype(np.float32),
+        }
+        _modelo_ease["modelo"] = modelo
+    return modelo
+
+
+def recomendador_ease(id_lector, cuantas=500):
+    """Recetas ordenadas por puntaje EASE, sin las que el usuario ya valoro
+    o ya vio. Solo devuelve recetas con puntaje positivo (relacionadas con
+    algo que reseño); recomendar() completa con top_n si faltan."""
+    modelo = modelo_ease()
+    valoradas = set(items_valorados(id_lector))
+    excluir = valoradas | set(items_vistos(id_lector))
+
+    x = np.zeros(len(modelo["recetas"]), dtype=np.float32)
+    for id_receta in valoradas:
+        if id_receta in modelo["columna_de"]:
+            x[modelo["columna_de"][id_receta]] = 1
+    puntajes = x @ modelo["B"]
+
+    elegidas = []
+    for c in np.argsort(-puntajes):
+        if puntajes[c] <= 0 or len(elegidas) == cuantas:
+            break
+        if modelo["recetas"][c] not in excluir:
+            elegidas.append(modelo["recetas"][c])
+    if not elegidas:
+        return []
+
+    marcas = ",".join("?" * len(elegidas))
+    filas = sql_select(f"SELECT * FROM recetas WHERE id IN ({marcas})", elegidas)
+    por_id = {f["id"]: f for f in filas}
+    return [por_id[r] for r in elegidas]
+
+
 def top_populares(N=10):
     """Las N recetas mas populares en general (sin importar el usuario),
     para la seccion fija de 'Las más populares' de la pagina. Usa la
@@ -293,14 +384,14 @@ def recomendar(id_lector, N=10, registrar_vistos=True):
         rec = recomendador_top_n(id_lector)
         algoritmo = "top_n"
     else:
-        rec = recomendador_perfil(id_lector)
-        algoritmo = "perfil"
+        rec = recomendador_ease(id_lector)
+        algoritmo = "ease"
 
         if len(rec) < N:
-            # Evitamos repetir recetas que perfil ya habia recomendado
-            ids_perfil = {r["id"] for r in rec}
-            rec = rec + [r for r in recomendador_top_n(id_lector) if r["id"] not in ids_perfil]
-            algoritmo = "perfil+top_n"
+            # Evitamos repetir recetas que EASE ya habia recomendado
+            ids_ease = {r["id"] for r in rec}
+            rec = rec + [r for r in recomendador_top_n(id_lector) if r["id"] not in ids_ease]
+            algoritmo = "ease+top_n"
 
     rec = rec[:N]
     if registrar_vistos:

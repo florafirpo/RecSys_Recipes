@@ -40,9 +40,27 @@ def test_cold_start_usa_popularidad(recomendador_de_prueba):
     assert algoritmo == "top_n"
 
 
-def test_usuario_con_historial_usa_perfil(recomendador_de_prueba):
+def test_usuario_con_historial_usa_ease(recomendador_de_prueba):
     _, algoritmo = recomendador_de_prueba.recomendar(1, N=1, registrar_vistos=False)
-    assert algoritmo.startswith("perfil")
+    assert algoritmo.startswith("ease")
+
+
+def test_ease_completa_con_top_n_si_faltan(recomendador_de_prueba):
+    # En la base de juguete hay 8 recetas y el usuario 1 valoro 6: EASE no llega a 5
+    rec, algoritmo = recomendador_de_prueba.recomendar(1, N=5, registrar_vistos=False)
+    assert algoritmo == "ease+top_n"
+    assert len(ids(rec)) == len(set(ids(rec)))  # sin repetidas
+
+
+def test_ease_usa_las_valoraciones_nuevas_sin_reentrenar(recomendador_de_prueba):
+    # Un usuario nuevo que valora 3 recetas pasa a recibir EASE enseguida
+    for receta in (10, 13, 15):
+        recomendador_de_prueba.insertar_interaccion(50, receta, 5)
+    rec, algoritmo = recomendador_de_prueba.recomendar(50, N=2, registrar_vistos=False)
+    assert algoritmo.startswith("ease")
+    assert not {10, 13, 15} & set(ids(rec))
+    # La receta 17 la reseño el usuario 2, que comparte las 3 recetas con el usuario 50
+    assert ids(rec)[0] == 17
 
 
 def test_perfil_incluye_categoria_favorita_de_autor_nuevo(recomendador_de_prueba):

@@ -99,7 +99,7 @@ Todo se cambia en `config.py`:
 | `azar` | Baseline: recetas al azar que el usuario no valoró ni vio |
 | `top_n` | Popularidad: suma de ratings de cada receta en `interacciones` (en la evaluación, solo train) |
 | `perfil` | Contenido: categorías (peso 0,8) y autores (peso 0,2) de las recetas que le gustaron |
-| `recomendar` | Combina las anteriores: *cold start* → `top_n`; con historial → `perfil`, completando con `top_n` |
+| `recomendar` | La que usa la página: *cold start* → `top_n`; con historial → EASE, completando con `top_n` |
 | `user-kNN` | Filtrado colaborativo: recomienda lo que reseñaron los k usuarios más parecidos (similitud coseno) |
 | `EASE` | Modelo lineal receta × receta con fórmula cerrada (Steck, 2019): aprende cuánto "empuja" cada receta reseñada a cada otra |
 
@@ -308,6 +308,13 @@ Los tests usan bases de juguete en carpetas temporales: no tocan los datos reale
 ## Despliegue en PythonAnywhere
 
 La página web importa `recomendador.py`, que a su vez necesita `config.py`. Subí los dos archivos junto con la aplicación y apuntá a la base con una variable de entorno: `RECETAS_DB` (ruta completa a `recetas_app.db`) o `RECETAS_DATOS` (carpeta).
+
+**Qué recomienda la página.** La página llama a `recomendar()`: con 2 recetas valoradas o menos usa popularidad (`top_n`), y desde la tercera usa **EASE**, completando con `top_n` si faltan recetas. Antes usaba `perfil`, que en la evaluación acertaba bastante menos (hit rate 20 % contra 51 %). En `python main.py evaluar` aparece como "recomendar (la pagina)" y da lo mismo que EASE.
+
+- El modelo se entrena una sola vez (0,8 s con la base actual) y queda en memoria. Recomendar tarda unas milésimas.
+- Una valoración nueva cambia las recomendaciones de ese usuario enseguida, sin reentrenar: EASE suma los pesos de las recetas que el usuario reseñó hasta ese momento.
+- El modelo se vuelve a entrenar solo si las interacciones de la base crecen más de un 5 %.
+- Necesita `numpy`, que en PythonAnywhere ya viene instalado.
 
 ## Scraping
 

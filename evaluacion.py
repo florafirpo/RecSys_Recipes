@@ -96,6 +96,14 @@ def comparar_contra_base(estrategia, base, reservadas_por_usuario, n,
     return sum(diferencias) / len(diferencias), inferior, superior
 
 
+def perfil_con_top_n(id_lector):
+    """Lo que hacia la pagina antes con usuarios con historial: perfil,
+    completado con top_n. Queda para comparar."""
+    rec = recomendador.recomendador_perfil(id_lector)
+    ids_perfil = {r["id"] for r in rec}
+    return rec + [r for r in recomendador.recomendador_top_n(id_lector) if r["id"] not in ids_perfil]
+
+
 def estrategias_a_evaluar(n):
     """Las estrategias que se comparan. Aca se suman los modelos nuevos.
     Los modelos colaborativos se entrenan con la base que este usando el
@@ -107,9 +115,10 @@ def estrategias_a_evaluar(n):
         "azar": recomendador.recomendador_azar,
         "top_n": recomendador.recomendador_top_n,
         "perfil": recomendador.recomendador_perfil,
-        "recomendar (perfil+top_n)": lambda id_lector: recomendador.recomendar(
+        "recomendar (la pagina)": lambda id_lector: recomendador.recomendar(
             id_lector, n, registrar_vistos=False
         )[0],
+        "perfil+top_n (pagina anterior)": lambda id_lector: perfil_con_top_n(id_lector),
         f"user-kNN (k={config.K_VECINOS})": modelos.crear_estrategia(user_knn, X, usuarios, recetas),
         f"EASE (lambda={config.LAMBDA_EASE})": modelos.crear_estrategia(ease, X, usuarios, recetas),
         "populares recientes": dos_etapas.crear_populares_recientes(recomendador.DATABASE_FILE, n),
