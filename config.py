@@ -61,10 +61,12 @@ LAMBDA_EASE = 500    # EASE: regularizacion
 # ---------------------------------------------------------------------------
 
 # Combinaciones (min_usuario, min_item) que se prueban en modo exploracion.
-# Sin reseñas de 0 estrellas. (45, 10) ya estaba al borde del colapso.
+# Sin reseñas de 0 estrellas. Con historiales completos de usuarios (script 22)
+# se pueden usar minimos mas altos: un compañero llego al 5,49% con 80/80.
 COMBINACIONES_A_PROBAR = [
-    (30, 10), (32, 10), (35, 10), (38, 10), (40, 10), (42, 10), (45, 10),
-    (30, 12), (35, 12), (25, 10), (25, 8), (20, 8),
+    (20, 8), (25, 10), (30, 10), (35, 10), (40, 10), (45, 10),
+    (30, 15), (40, 15), (50, 15), (50, 20), (60, 20), (60, 30),
+    (80, 20), (80, 40), (80, 80), (100, 50),
 ]
 
 # Grillas que prueba  python main.py matriz --densidad-minima 0.02
