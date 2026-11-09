@@ -175,6 +175,8 @@ También se probó el **recomendador en dos etapas** (`dos_etapas.py`):
 
 **En recetas, ni las dos etapas ni el corte temporal cambian la conclusión: nada le gana con claridad a la popularidad.** EASE queda apenas arriba, en el borde de la significancia. Las dos etapas tienen el mejor MRR (aciertan un poco más arriba), pero en precisión empatan.
 
+**Decisión: en recetas no se usa el recomendador en dos etapas.** El código queda en `dos_etapas.py` como referencia, pero se sacó de `python main.py evaluar`, porque con los datos de recetas no le gana a EASE en ninguna de las dos bases.
+
 ¿Por qué no se repite la mejora de libros (+41 %)?
 - **Hay muchos menos datos para entrenar el ranking:** 709 reseñas positivas, contra más de 1.500 en libros, y 501 usuarios contra 10.000.
 - **La muestra ya está sesgada hacia lo popular:** el filtrado p-core se quedó con las recetas más reseñadas, y el feed de food.com viene ordenado por likes. Con ese sesgo, la popularidad es casi imbatible.
