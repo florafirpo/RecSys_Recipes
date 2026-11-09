@@ -1,0 +1,24 @@
+Evaluando 526 usuarios, N = 10
+
+    ranker entrenado con 71103 pares usuario-receta (1675 reseñadas), corte interno 2010-01-01
+estrategia                             hit rate@N    precision@N       recall@N            MRR  con N recetas
+azar                                        0.095          0.010          0.005          0.028          1.000
+top_n                                       0.460          0.068          0.033          0.211          1.000
+perfil                                      0.198          0.025          0.013          0.081          1.000
+recomendar (perfil+top_n)                   0.198          0.025          0.013          0.081          1.000
+user-kNN (k=50)                             0.530          0.084          0.042          0.242          1.000
+EASE (lambda=500)                           0.532          0.084          0.042          0.252          1.000
+populares recientes                         0.150          0.016          0.008          0.073          1.000
+dos etapas (retrieval + ranking)            0.215          0.025          0.013          0.063          1.000
+
+Diferencia de precision@N contra top_n (intervalo de confianza 95%, bootstrap pareado):
+  perfil                       -0.044  [-0.053, -0.035]  significativa
+  recomendar (perfil+top_n)    -0.044  [-0.053, -0.035]  significativa
+  user-kNN (k=50)              +0.016  [+0.009, +0.022]  significativa
+  EASE (lambda=500)            +0.015  [+0.009, +0.021]  significativa
+  populares recientes          -0.052  [-0.061, -0.044]  significativa
+  dos etapas (retrieval + ranking) -0.044  [-0.053, -0.035]  significativa
+
+real	2m43.103s
+user	2m39.192s
+sys	0m5.898s

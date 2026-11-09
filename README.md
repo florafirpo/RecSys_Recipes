@@ -111,7 +111,7 @@ Split **80/20 por usuario**: a cada usuario se le esconde al azar el 20 % de sus
 
 Con este split quedan 6.196 reseñas en test (mediana de 10 por usuario, mínimo 6) y una mediana de 38 en train.
 
-Resultados actuales (501 usuarios, N = 10; `azar` es el promedio de 20 corridas):
+Resultados con la **base anterior** (501 usuarios, N = 10; `azar` es el promedio de 20 corridas). Los de la base actual, armada con los historiales completos de los usuarios, están en [Base nueva](#base-nueva-historiales-completos-de-usuarios-p-core-40-15):
 
 | Estrategia | hit rate@10 | precision@10 | recall@10 | MRR |
 |---|---|---|---|---|
@@ -188,6 +188,50 @@ Se probó con `python main.py matriz --densidad-minima 0.02`, que busca la combi
 **Decisión: se mantiene la base actual.** La base de 2,17 % suma usuarios, pero deja un catálogo formado solo por las 1.000 recetas más populares, con usuarios que reseñaron en promedio 22 recetas (contra 62 de la base actual). Recortar a lo más popular sube la densidad a costa de sesgar el problema: si el catálogo es solo lo popular, "recomendar lo popular" acierta casi siempre, y ningún modelo, tampoco el ranking de dos etapas, puede mostrar lo que aporta.
 
 Para comparar: en el proyecto de libros la matriz tiene 0,09 % de densidad y aun así EASE y las dos etapas le ganan con claridad a la popularidad. La densidad alta sirve para que los métodos por similitud tengan vecinos en común, pero no es un requisito de los modelos.
+
+### Base nueva: historiales completos de usuarios (p-core 40/15)
+
+La base anterior tenía un problema de origen: las reseñas se bajaron receta por receta, empezando por las más reseñadas, así que la muestra estaba sesgada hacia lo popular. Para corregirlo se bajó el **historial completo de cada usuario** (`scraping/8_historial_usuarios.py`) y se armó la base con `python main.py matriz 40 15` (cada usuario con 40 reseñas o más, cada receta con 15 o más), **sin recortar a las más populares**.
+
+| Base | Usuarios | Recetas | Reseñas | Densidad |
+|---|---|---|---|---|
+| Anterior: (30, 10) + recorte a las populares | 501 | 1.855 | ≈31.000 | 3,34 % |
+| **Actual: (40, 15) sin recorte** | **526** | **2.147** | **53.282** | **4,72 %** |
+
+Hay más densidad sin haber recortado nada: ahora cada usuario aporta en promedio 101 reseñas (antes 62). De las 2.147 recetas, 53 no tienen ficha (ingredientes, categoría); siguen en la matriz de los modelos colaborativos, pero `perfil` no las puede recomendar.
+
+**Split 80/20 al azar** (526 usuarios, 10.657 reseñas en test, unas 20 por usuario):
+
+| Estrategia | hit rate@10 | precision@10 | recall@10 | MRR | vs top_n (IC 95 %) |
+|---|---|---|---|---|---|
+| azar | 0,095 | 0,010 | 0,005 | 0,028 | |
+| perfil | 0,198 | 0,025 | 0,013 | 0,081 | −0,044, peor |
+| populares recientes | 0,150 | 0,016 | 0,008 | 0,073 | −0,052, peor |
+| dos etapas | 0,215 | 0,025 | 0,013 | 0,063 | −0,044, peor |
+| top_n | 0,460 | 0,068 | 0,033 | 0,211 | línea base |
+| user-kNN (k=50) | 0,530 | **0,084** | **0,042** | 0,242 | +0,016 [+0,009; +0,022] |
+| **EASE (λ=500)** | **0,532** | **0,084** | **0,042** | **0,252** | +0,015 [+0,009; +0,021] |
+
+**Corte temporal en 2012** (368 usuarios, 6.179 reseñas en test):
+
+| Estrategia | hit rate@10 | precision@10 | recall@10 | MRR | vs top_n (IC 95 %) |
+|---|---|---|---|---|---|
+| perfil | 0,130 | 0,015 | 0,010 | 0,048 | −0,021, peor |
+| top_n | 0,236 | 0,036 | 0,026 | 0,090 | línea base |
+| populares recientes | 0,247 | 0,037 | 0,030 | 0,092 | +0,001 [−0,006; +0,008] |
+| dos etapas | 0,258 | 0,039 | 0,030 | 0,094 | +0,003 [−0,004; +0,009] |
+| user-kNN (k=50) | 0,255 | 0,040 | 0,030 | 0,109 | +0,004 [−0,002; +0,010] |
+| **EASE (λ=500)** | **0,288** | **0,043** | **0,035** | **0,111** | **+0,008 [+0,002; +0,013]** |
+
+Qué cambió respecto de la base anterior:
+
+- **La ventaja de los modelos colaborativos sobre la popularidad creció.** Al azar, EASE le saca +22 % de precisión a `top_n` (antes +17 %) y user-kNN +23 % (antes +10 %). Con el corte temporal, EASE pasa de "en el borde" a **significativamente mejor** (+22 %, con un intervalo que ya no toca el 0). Es lo que se buscaba al sacar el sesgo de popularidad de la muestra: ahora el catálogo tiene recetas que no son las más famosas, y ahí la popularidad deja de acertar sola.
+- **Las "populares recientes" dejaron de ser malas en el corte temporal** (antes −0,017; ahora empatan con `top_n`). Con los historiales completos aparecen reseñas más nuevas, y la ventana de los últimos 2 años tiene más señal.
+- **Las dos etapas no mejoran a EASE.** En el corte temporal empatan con `top_n`. Al azar rinden muy mal, pero esa comparación no es justa: el ranking se entrena para predecir lo que viene *después* de 2010, y el test al azar esconde reseñas de cualquier época. Las dos etapas solo se deberían comparar con el split temporal. Con 1.357 recetas reseñadas en el período de entrenamiento del ranking, los datos todavía no alcanzan para que el gradient boosting aprenda algo que EASE no capte.
+- **El recall bajó** (0,075 → 0,042 al azar) porque ahora cada usuario tiene unas 20 reseñas escondidas en lugar de 10: con 10 recomendaciones es imposible recuperar más de la mitad. Por eso los números absolutos de las dos bases no se comparan directamente; lo que sí se compara es la diferencia de cada modelo contra `top_n` dentro de la misma base.
+- `recomendar` sigue rindiendo igual que `perfil`, porque todos los usuarios tienen 40 reseñas o más y nunca entra el *cold start*.
+
+**Conclusión:** con la base nueva, **EASE es el mejor modelo en los dos splits** y el único que le gana con significancia a la popularidad en el corte temporal, que es la evaluación más realista.
 
 ## Bugs corregidos
 
