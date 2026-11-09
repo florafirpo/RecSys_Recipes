@@ -18,6 +18,7 @@ sistema_recomendacion/
 ├── recomendador.py    las estrategias de recomendación (la usa también la página web)
 ├── modelos.py         modelos de filtrado colaborativo: user-kNN y EASE
 ├── dos_etapas.py      recomendador en dos etapas: retrieval + ranking
+├── ajuste.py          elige k (user-kNN) y λ (EASE) con una validación sacada de train
 ├── evaluacion.py      métricas offline (hit rate, precision, recall, MRR)
 ├── eda.py             análisis exploratorio y comparación con el promedio del sitio
 ├── tests/             tests automáticos (pytest)
@@ -75,6 +76,7 @@ Para ver todas las opciones: `python main.py --help` o `python main.py matriz --
 | `python main.py base` | Arma la base liviana de la aplicación (la anterior queda como `recetas_app_anterior.db`) | `food_scraping.db` + CSV | `recetas_app.db` |
 | `python main.py split` | Separa train / test por usuario (80/20 al azar) | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
 | `python main.py split --temporal 2012-01-01` | Corte por fecha: train = antes, test = desde esa fecha | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
+| `python main.py ajustar [--temporal 2010-01-01]` | Prueba una grilla de k y λ con una validación dentro de train (no mira test) | `recetas_train.db` | nada |
 | `python main.py evaluar` | Evalúa las estrategias sobre test | train + test | nada |
 | `python main.py eda` | Gráficos y resumen del dataset | `recetas_app.db` | `resultados/eda/` |
 | `python main.py sesgo` | Compara nuestras reseñas con el promedio que muestra el sitio | `recetas_app.db` | nada |
@@ -233,6 +235,44 @@ Qué cambió respecto de la base anterior:
 
 **Conclusión:** con la base nueva, **EASE es el mejor modelo en los dos splits** y el único que le gana con significancia a la popularidad en el corte temporal, que es la evaluación más realista.
 
+Estas tablas se midieron con k = 50 y λ = 500. Después se ajustaron con validación (sección siguiente).
+
+### Ajuste de k y λ con validación
+
+Hasta acá `K_VECINOS = 50` y `LAMBDA_EASE = 500` venían de una prueba rápida con la base vieja. Elegirlos mirando test sería trampa: si probás 10 valores contra test y te quedás con el mejor, el número de test deja de ser una medición honesta. Por eso `python main.py ajustar` arma una **validación dentro de train** y test se usa una sola vez, al final.
+
+- **Validación temporal** (`python main.py ajustar --temporal 2010-01-01`, sobre el train del corte 2012): train interno = antes de 2010; validación = positivas de 2010 y 2011. 444 usuarios, 7.064 reseñas.
+- **Validación al azar** (`python main.py ajustar`, sobre el train del split al azar): se esconde el 20 % de las positivas de cada usuario. 526 usuarios, 8.522 reseñas.
+
+| | Validación temporal: precision@10 | Validación al azar: precision@10 |
+|---|---|---|
+| popularidad (referencia) | 0,0401 | 0,0532 |
+| user-kNN k = 20 | 0,0381 | 0,0492 |
+| user-kNN k = 50 (anterior) | 0,0419 | 0,0555 |
+| **user-kNN k = 100** | **0,0439** | 0,0582 |
+| user-kNN k = 300 | 0,0423 | 0,0568 |
+| EASE λ = 50 | 0,0360 | 0,0494 |
+| EASE λ = 200 | 0,0410 | **0,0603** |
+| EASE λ = 500 (anterior) | 0,0428 | 0,0599 |
+| **EASE λ = 750** | **0,0430** | 0,0599 |
+| EASE λ = 5000 | 0,0421 | 0,0572 |
+
+Las grillas completas están en `resultados/ajuste_*.txt`. Lo que muestran:
+
+- **Valores chicos son claramente peores:** con k ≤ 20 o λ ≤ 100 los modelos quedan por debajo de la popularidad. Con pocos vecinos o poca regularización el modelo se "pega" a casos particulares (sobreajusta).
+- **Arriba de eso la curva es plana:** entre λ = 200 y 1.000, y entre k = 75 y 150, las diferencias son de milésimas y cambian de orden según la validación. Los valores anteriores (50 y 500) ya estaban en esa zona.
+- **Elegidos: k = 100 y λ = 750**, los mejores en la validación temporal, que es la más parecida al uso real. En la validación al azar quedan empatados con el mejor.
+
+Resultado en test, medido una sola vez:
+
+| | Al azar: EASE | Al azar: user-kNN | Temporal: EASE | Temporal: user-kNN |
+|---|---|---|---|---|
+| Antes (λ = 500, k = 50) | 0,084 | 0,084 | 0,043 | 0,040 |
+| Ajustado (λ = 750, k = 100) | 0,083 | 0,082 | 0,041 | 0,040 |
+| Diferencia vs top_n (ajustado) | +0,014 [+0,009; +0,020] | +0,013 [+0,008; +0,019] | +0,005 [+0,000; +0,010] | +0,004 [−0,001; +0,008] |
+
+**El ajuste no mejoró test: los valores nuevos rinden igual que los anteriores** (las diferencias son de 1 o 2 milésimas, menos que el ruido). Es lo esperable cuando la curva de validación es plana. Igual se quedan los valores ajustados: volver a los anteriores porque en test dieron un poco más sería elegir mirando test, justo lo que el ajuste busca evitar. La conclusión no cambia: EASE sigue siendo el mejor en los dos splits y le gana a la popularidad en el corte temporal, aunque ahora en el límite de la significancia.
+
 ## Bugs corregidos
 
 Cada uno tiene un test de regresión en `tests/` para que no vuelva a aparecer.
@@ -244,7 +284,7 @@ Cada uno tiene un test de regresión en `tests/` para que no vuelva a aparecer.
 ## Limitaciones
 
 - **Selección de la muestra**: el filtrado p-core se hace con todas las reseñas, antes de separar train y test. Una receta puede estar en el catálogo gracias a reseñas que después quedan en test. Es una práctica habitual en la literatura, pero conviene mencionarla.
-- **Hiperparámetros**: `K_VECINOS` y `LAMBDA_EASE` (en `config.py`) salieron de una exploración rápida sobre el split anterior, no de un conjunto de validación separado. Lo correcto sería ajustarlos con una validación tomada de train.
+- **Hiperparámetros**: `K_VECINOS` y `LAMBDA_EASE` se eligieron con una validación dentro de train (ver *Ajuste de k y λ*). Los parámetros del recomendador en dos etapas (cantidad de candidatos de cada fuente, ventana de "recientes") todavía son valores fijados a mano.
 - **Dataset** (ver `resultados/eda/resumen.txt`): el 81 % de las reseñas tiene 5 estrellas, y el feed de food.com viene ordenado por "más likes", así que las primeras reseñas de cada receta están sobrerrepresentadas.
 
 ## Tests

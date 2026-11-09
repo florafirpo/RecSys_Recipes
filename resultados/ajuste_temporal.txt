@@ -1,0 +1,33 @@
+Validacion temporal: train interno antes de 2010-01-01
+  37905 reseñas de train interno, 7064 de validacion, 444 usuarios
+
+Referencia, popularidad: precision@10 = 0.0401   MRR = 0.1140
+
+user-kNN
+       k  precision@10      MRR
+       5        0.0297   0.0818
+      10        0.0342   0.0995
+      20        0.0381   0.1112
+      30        0.0405   0.1211
+      50        0.0419   0.1273
+      75        0.0421   0.1287
+     100        0.0439   0.1336
+     150        0.0430   0.1251
+     200        0.0412   0.1228
+     300        0.0423   0.1270
+
+EASE
+  lambda  precision@10      MRR
+      10        0.0320   0.0821
+      50        0.0360   0.0993
+     100        0.0376   0.1020
+     200        0.0410   0.1107
+     300        0.0426   0.1183
+     500        0.0428   0.1235
+     750        0.0430   0.1295
+    1000        0.0421   0.1318
+    2000        0.0417   0.1296
+    5000        0.0421   0.1258
+
+Mejor k = 100   mejor lambda = 750
+(en config.py hoy: K_VECINOS = 50, LAMBDA_EASE = 500)

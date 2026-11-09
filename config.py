@@ -53,8 +53,8 @@ MAX_VALORADAS_COLD_START = 2
 N_RECOMENDACIONES = 10
 
 # Hiperparametros de los modelos colaborativos (modelos.py)
-K_VECINOS = 50       # user-kNN: cuantos usuarios parecidos se miran
-LAMBDA_EASE = 500    # EASE: regularizacion
+K_VECINOS = 100     # user-kNN: cuantos usuarios parecidos se miran (elegido con: python main.py ajustar)
+LAMBDA_EASE = 750   # EASE: regularizacion (elegido con: python main.py ajustar)
 
 # ---------------------------------------------------------------------------
 # Parametros de la matriz (filtrado p-core)

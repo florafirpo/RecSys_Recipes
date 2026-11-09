@@ -76,6 +76,11 @@ def comando_evaluar(args):
     evaluacion.evaluar_todo()
 
 
+def comando_ajustar(args):
+    import ajuste
+    ajuste.ajustar(fecha_corte=args.temporal)
+
+
 def comando_eda(args):
     import eda
     eda.hacer_eda(args.db, args.salida)
@@ -107,6 +112,11 @@ def crear_parser():
 
     p = sub.add_parser("evaluar", help="evalua los recomendadores contra test")
     p.set_defaults(funcion=comando_evaluar)
+
+    p = sub.add_parser("ajustar", help="elige k (user-kNN) y lambda (EASE) con una validacion sacada de train")
+    p.add_argument("--temporal", metavar="AAAA-MM-DD", default=None,
+                   help="validacion por fecha dentro de train (usar si el test es temporal)")
+    p.set_defaults(funcion=comando_ajustar)
 
     p = sub.add_parser("eda", help="analisis exploratorio de recetas_app.db")
     p.add_argument("--db", default=config.DB_APP)
