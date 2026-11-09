@@ -18,7 +18,7 @@
             <h1>{{ receta["title"] }}</h1>
             <p class="datos">
                 {% if receta["author_name"] %}<span>Receta de {{ receta["author_name"] }}</span>{% endif %}
-                {% if receta["rating_value"] %}<span>★ {{ "%.1f"|format(receta["rating_value"]) }} en food.com</span>{% endif %}
+                {% if receta["rating_value"] %}<span>★ {{ "%.1f"|format(receta["rating_value"]) }}</span>{% endif %}
                 {% if ingredientes %}<span>{{ ingredientes|length }} ingredientes</span>{% endif %}
             </p>
             {% if receta["description"] %}
@@ -27,7 +27,7 @@
 
             <div class="receta-acciones">
                 {% if receta["url"] %}
-                <a class="boton" href="{{ receta['url'] }}" target="_blank" rel="noopener">Ver la preparación en food.com ↗</a>
+                <a class="boton" href="{{ receta['url'] }}" target="_blank" rel="noopener">Ver la preparación ↗</a>
                 {% endif %}
                 <form method="POST" action="/senal/{{ id_usuario }}/{{ receta['id'] }}">
                     <input type="hidden" name="tipo" value="tienta">
