@@ -333,15 +333,31 @@ def obtener_receta(id_receta):
     return rows[0] if rows else None
 
 
+def tiene_columna(tabla, columna):
+    return any(c["name"] == columna for c in sql_select(f"PRAGMA table_info({tabla})"))
+
+
 def obtener_ingredientes(id_receta):
-    """Lista de ingredientes de una receta, en el orden original."""
-    rows = sql_select("""
-        SELECT texto_completo
-          FROM ingredientes
-         WHERE recipe_id = ?
-         ORDER BY orden
-    """, [id_receta])
-    return [r["texto_completo"] for r in rows]
+    """Lista de ingredientes en el orden original, con su cantidad adelante
+    si la base la tiene ("1 1/2 cups flour")."""
+    if tiene_columna("ingredientes", "cantidad"):
+        rows = sql_select("""
+            SELECT TRIM(COALESCE(cantidad || ' ', '') || COALESCE(texto_completo, '')) AS texto
+              FROM ingredientes WHERE recipe_id = ? ORDER BY orden
+        """, [id_receta])
+    else:
+        rows = sql_select("SELECT texto_completo AS texto FROM ingredientes WHERE recipe_id = ? ORDER BY orden",
+                          [id_receta])
+    return [r["texto"] for r in rows]
+
+
+def obtener_preparacion(id_receta):
+    """Pasos de preparacion, en orden. Lista vacia si la base no los tiene."""
+    existe = sql_select("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'preparacion'")
+    if not existe:
+        return []
+    rows = sql_select("SELECT texto FROM preparacion WHERE recipe_id = ? ORDER BY paso", [id_receta])
+    return [r["texto"] for r in rows]
 
 
 ###

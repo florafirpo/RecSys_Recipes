@@ -63,6 +63,11 @@ def comando_base(args):
     dataset.armar_base_app()
 
 
+def comando_preparacion(args):
+    import dataset
+    dataset.agregar_preparacion()
+
+
 def comando_split(args):
     import dataset
     if args.temporal:
@@ -105,6 +110,9 @@ def crear_parser():
 
     p = sub.add_parser("base", help="arma recetas_app.db con el subconjunto de la matriz")
     p.set_defaults(funcion=comando_base)
+
+    p = sub.add_parser("preparacion", help="agrega pasos de preparacion y cantidades a recetas_app.db")
+    p.set_defaults(funcion=comando_preparacion)
 
     p = sub.add_parser("split", help="separa recetas_app.db en train y test")
     p.add_argument("--temporal", metavar="AAAA-MM-DD", default=None, help="corte por fecha en lugar de al azar")

@@ -74,6 +74,7 @@ Para ver todas las opciones: `python main.py --help` o `python main.py matriz --
 | `python main.py matriz 40 10 --top 2000` | Exporta el recorte a las 2000 recetas más populares | `food_scraping.db` | `.npz` + 2 CSV |
 | `python main.py matriz --densidad-minima 0.02` | Prueba una grilla de mínimos y exporta la combinación con más usuarios y densidad ≥ 2 % | `food_scraping.db` | `.npz` + 2 CSV |
 | `python main.py base` | Arma la base liviana de la aplicación (la anterior queda como `recetas_app_anterior.db`) | `food_scraping.db` + CSV | `recetas_app.db` |
+| `python main.py preparacion` | Agrega a `recetas_app.db` los pasos de preparación (tabla `preparacion`) y las cantidades de los ingredientes (columna `cantidad`), sin rearmar la base | `food_scraping.db` + `recetas_app.db` | `recetas_app.db` actualizada |
 | `python main.py split` | Separa train / test por usuario (80/20 al azar) | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
 | `python main.py split --temporal 2012-01-01` | Corte por fecha: train = antes, test = desde esa fecha | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
 | `python main.py ajustar [--temporal 2010-01-01]` | Prueba una grilla de k y λ con una validación dentro de train (no mira test) | `recetas_train.db` | nada |

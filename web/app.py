@@ -148,6 +148,7 @@ def get_receta(id_usuario, id_receta):
         "receta.html",
         receta=receta,
         ingredientes=[i for i in recomendador.obtener_ingredientes(id_receta) if i and i.strip()],
+        pasos=recomendador.obtener_preparacion(id_receta),
         mi_rating=recomendador.mi_rating(id_usuario, id_receta),
         mi_senal=recomendador.mi_senal(id_usuario, id_receta),
         aviso=AVISOS.get(request.args.get("aviso")),

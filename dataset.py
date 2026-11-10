@@ -177,6 +177,111 @@ def copiar_ingredientes(origen, destino, interno_por_food):
     print(f"  {len(filas)} filas de ingredientes copiadas.")
 
 
+def pasos_desde_json(texto):
+    """Convierte el directions_json que guardo el scraper en una lista de
+    pasos (textos). food.com puede mandarlo como lista de textos, como lista
+    de objetos con 'text' (o 'displayText') o anidado en grupos; se aceptan
+    todas esas formas. Tambien saca etiquetas HTML y entidades (&deg; -> °)."""
+    import html
+    import json
+    import re
+    try:
+        datos = json.loads(texto) if texto else None
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+    pasos = []
+
+    def recorrer(x):
+        if isinstance(x, str):
+            limpio = re.sub(r"<[^>]+>", " ", html.unescape(x))
+            limpio = re.sub(r"\s+", " ", limpio).strip()
+            if limpio:
+                pasos.append(limpio)
+        elif isinstance(x, list):
+            for elemento in x:
+                recorrer(elemento)
+        elif isinstance(x, dict):
+            for clave in ("text", "displayText", "html", "description"):
+                if isinstance(x.get(clave), str):
+                    recorrer(x[clave])
+                    return
+            for clave in ("steps", "items", "directions", "itemListElement"):
+                if clave in x:
+                    recorrer(x[clave])
+                    return
+
+    recorrer(datos)
+    return pasos
+
+
+def copiar_preparacion(origen, destino, interno_por_food):
+    """Copia los pasos de preparacion a la tabla 'preparacion' (una fila por paso)."""
+    print("Copiando pasos de preparacion...")
+    food_por_interno = {v: k for k, v in interno_por_food.items()}
+    destino.execute("""
+        CREATE TABLE IF NOT EXISTS preparacion (
+            recipe_id INTEGER,
+            paso INTEGER,
+            texto TEXT,
+            PRIMARY KEY (recipe_id, paso)
+        )
+    """)
+    destino.execute("DELETE FROM preparacion")
+    filas = consulta_por_lotes(origen, "SELECT id, directions_json FROM recetas WHERE id IN ({ph})",
+                               interno_por_food.values())
+    con_pasos = 0
+    for interno, texto in filas:
+        pasos = pasos_desde_json(texto)
+        if pasos:
+            con_pasos += 1
+        destino.executemany("INSERT INTO preparacion VALUES (?, ?, ?)",
+                            [(food_por_interno[interno], i, p) for i, p in enumerate(pasos, start=1)])
+    destino.commit()
+    print(f"  {con_pasos} de {len(interno_por_food)} recetas tienen pasos de preparacion.")
+
+
+def copiar_cantidades(origen, destino, interno_por_food):
+    """Agrega la cantidad de cada ingrediente ('1 1/2', '2'...) en una columna
+    nueva 'cantidad'. El scraper la guardo aparte, en 'quantity', y antes no
+    se copiaba: por eso los ingredientes aparecian sin numero."""
+    columnas_origen = [c[1] for c in origen.execute("PRAGMA table_info(ingredientes)")]
+    if "quantity" not in columnas_origen:
+        print("  Aviso: la tabla 'ingredientes' del scraping no tiene 'quantity'; se omiten las cantidades.")
+        return
+    columnas_destino = [c[1] for c in destino.execute("PRAGMA table_info(ingredientes)")]
+    if "cantidad" not in columnas_destino:
+        destino.execute("ALTER TABLE ingredientes ADD COLUMN cantidad TEXT")
+
+    print("Copiando cantidades de los ingredientes...")
+    food_por_interno = {v: k for k, v in interno_por_food.items()}
+    filas = consulta_por_lotes(origen, "SELECT recipe_id, orden, quantity FROM ingredientes WHERE recipe_id IN ({ph})",
+                               interno_por_food.values())
+    destino.executemany(
+        "UPDATE ingredientes SET cantidad = ? WHERE recipe_id = ? AND orden = ?",
+        [((q or "").strip() or None, food_por_interno[r], o) for r, o, q in filas],
+    )
+    destino.commit()
+    con_cantidad = destino.execute("SELECT COUNT(*) FROM ingredientes WHERE cantidad IS NOT NULL").fetchone()[0]
+    total = destino.execute("SELECT COUNT(*) FROM ingredientes").fetchone()[0]
+    print(f"  {con_cantidad} de {total} ingredientes tienen cantidad.")
+
+
+def agregar_preparacion(db_origen=config.DB_SCRAPING, db_app=config.DB_APP):
+    """Completa una recetas_app.db que ya existe con los pasos de preparacion
+    y las cantidades de los ingredientes, sin rearmarla (no toca usuarios,
+    valoraciones ni nada de lo que se cargo desde la pagina)."""
+    origen = conectar(db_origen)
+    destino = conectar(db_app)
+    ids_app = {r for (r,) in destino.execute("SELECT id FROM recetas")}
+    interno_por_food = mapear_ids_reales(origen, ids_app)
+    copiar_preparacion(origen, destino, interno_por_food)
+    copiar_cantidades(origen, destino, interno_por_food)
+    origen.close()
+    destino.close()
+    print(f"\nListo: '{db_app}' actualizada.")
+
+
 def chequear_base_app(destino):
     """Imprime los controles de calidad de la base nueva."""
     print("\nChequeos:")
@@ -218,6 +323,8 @@ def armar_base_app(db_origen=config.DB_SCRAPING, db_destino=config.DB_APP,
     copiar_usuarios(origen, destino, usuarios_ids)
     copiar_interacciones(origen, destino, usuarios_ids, items_set)
     copiar_ingredientes(origen, destino, interno_por_food)
+    copiar_preparacion(origen, destino, interno_por_food)
+    copiar_cantidades(origen, destino, interno_por_food)
     chequear_base_app(destino)
 
     origen.close()
