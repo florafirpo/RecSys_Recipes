@@ -43,6 +43,13 @@
         <a class="boton" href="/recomendar/{{ id_usuario }}?nuevas=1">Ver otras 10 recetas</a>
         <a class="boton-secundario" href="/vistas/{{ id_usuario }}?filtro=guardadas">Mis guardadas</a>
     </div>
+    <form class="buscador buscador-chico" method="GET" action="/explorar/{{ id_usuario }}" role="search">
+        <label for="q-inicio">¿Buscás algo puntual?</label>
+        <div class="buscador-fila">
+            <input type="search" id="q-inicio" name="q" placeholder="Un ingrediente: pollo, papa, chocolate…">
+            <button type="submit" class="boton">Buscar</button>
+        </div>
+    </form>
     {% else %}
     <div class="vacio">
         <img src="{{ url_for('static', filename='sin-imagen.svg') }}" alt="" width="120" height="90">

@@ -154,3 +154,25 @@ def test_historial_con_filtros(recomendador_de_prueba):
     assert set(ids(r.recetas_vistas(65, filtro="pendientes"))) == {b, c}
     r.reset_usuario(65)
     assert r.recetas_vistas(65, filtro="guardadas") == []
+
+
+def test_buscar_por_ingrediente_palabra_entera(recomendador_de_prueba, tmp_path):
+    r = recomendador_de_prueba
+    r.sql_execute("INSERT INTO ingredientes VALUES (10, 1, 'eggs, beaten', 'egg')")
+    r.sql_execute("INSERT INTO ingredientes VALUES (13, 1, 'eggplant, sliced', 'eggplant')")
+    recetas, lleva = r.buscar_recetas(terminos=["egg"])
+    assert ids(recetas) == [10]  # 'eggplant' no cuenta como huevo
+    assert lleva[10] == "eggs, beaten"
+
+
+def test_buscar_ordena_por_mejor_valoradas_y_filtra_categoria(recomendador_de_prueba):
+    r = recomendador_de_prueba
+    recetas, _ = r.buscar_recetas(categoria="Sopas")
+    assert set(ids(recetas)) == {15, 16}
+    promedios = [x["promedio"] for x in recetas]
+    assert promedios == sorted(promedios, reverse=True)
+
+
+def test_categorias_disponibles(recomendador_de_prueba):
+    cats = dict(recomendador_de_prueba.categorias_disponibles(min_recetas=2))
+    assert cats == {"Postres": 3, "Pastas": 2, "Sopas": 2}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_tarjeta.html" import tarjeta %}
+
+{% block titulo %}Explorar — Flor de Recetas{% endblock %}
+
+{% block contenido %}
+<section class="seccion" aria-labelledby="titulo-explorar">
+    <div class="seccion-cabecera">
+        <h1 id="titulo-explorar">Explorar recetas</h1>
+        <p>Buscá por ingrediente o elegí una categoría. Te mostramos las mejor valoradas por la comunidad.</p>
+    </div>
+
+    <form class="buscador" method="GET" action="/explorar/{{ id_usuario }}" role="search">
+        <label for="q">Ingrediente</label>
+        <div class="buscador-fila">
+            <input type="search" id="q" name="q" value="{{ busqueda }}" placeholder="Pollo, papa, chocolate, espinaca…">
+            {% if categoria %}<input type="hidden" name="categoria" value="{{ categoria }}">{% endif %}
+            <button type="submit" class="boton">Buscar</button>
+        </div>
+    </form>
+
+    <nav class="pestanias categorias" aria-label="Categorías">
+        <a href="/explorar/{{ id_usuario }}{% if busqueda %}?q={{ busqueda|urlencode }}{% endif %}" {% if not categoria %}aria-current="page"{% endif %}>Todas</a>
+        {% for nombre, cantidad in categorias %}
+        <a href="/explorar/{{ id_usuario }}?categoria={{ nombre|urlencode }}{% if busqueda %}&q={{ busqueda|urlencode }}{% endif %}"
+           {% if nombre == categoria %}aria-current="page"{% endif %}>{{ nombre|castellano }} <span class="cuenta">{{ cantidad }}</span></a>
+        {% endfor %}
+    </nav>
+
+    <div class="resultado-cabecera">
+        <h2>
+            Las mejor valoradas
+            {% if busqueda %} con «{{ busqueda }}»{% endif %}
+            {% if categoria %} en {{ categoria|castellano }}{% endif %}
+        </h2>
+        {% if busqueda and terminos and terminos[0] != busqueda|lower %}
+        <p class="nota">Buscamos en las recetas: {{ terminos|join(", ") }}</p>
+        {% endif %}
+    </div>
+
+    {% if recetas %}
+    <div class="grilla">
+        {% for receta in recetas %}
+        {{ tarjeta(receta, id_usuario, volver,
+                   n_ingredientes=n_ingredientes.get(receta['id']),
+                   guardada=receta['id'] in guardadas,
+                   lleva=lleva.get(receta['id'])) }}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="vacio">
+        <img src="{{ url_for('static', filename='sin-imagen.svg') }}" alt="" width="120" height="90">
+        <h2>No encontramos recetas con «{{ busqueda }}»{% if categoria %} en {{ categoria|castellano }}{% endif %}</h2>
+        <p>Probá con otro ingrediente o escribilo en inglés: las recetas vienen de una comunidad en inglés.</p>
+        <a class="boton" href="/explorar/{{ id_usuario }}">Ver todas</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

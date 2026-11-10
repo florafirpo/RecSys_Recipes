@@ -10,9 +10,10 @@
     numero         : puesto en el ranking (solo en "Las más populares")
     mi_rating      : sus estrellas (en "Ya vistas")
     acciones       : mostrar los botones rapidos
+    lleva          : el ingrediente buscado, como figura en la receta
 #}
 {% macro tarjeta(receta, id_usuario, volver, por_que=None, n_ingredientes=None, guardada=False,
-                 destacada=False, nueva=False, numero=None, mi_rating=None, acciones=True) %}
+                 destacada=False, nueva=False, numero=None, mi_rating=None, acciones=True, lleva=None) %}
 <article class="tarjeta{% if destacada %} tarjeta-destacada{% endif %}{% if nueva %} tarjeta-nueva{% endif %}">
     <a class="tarjeta-enlace" href="/receta/{{ id_usuario }}/{{ receta['id'] }}">
         <div class="tarjeta-foto">
@@ -27,11 +28,15 @@
             {% endif %}
             <h3>{{ receta["title"] }}</h3>
             <p class="datos">
-                {% if receta["rating_value"] %}<span>★ {{ "%.1f"|format(receta["rating_value"]) }}</span>{% endif %}
+                {% if receta["promedio"] %}<span>★ {{ "%.1f"|format(receta["promedio"]) }} · {{ receta["cant_resenas"] }} reseñas</span>
+                {% elif receta["rating_value"] %}<span>★ {{ "%.1f"|format(receta["rating_value"]) }}</span>{% endif %}
                 {% if n_ingredientes %}<span>{{ n_ingredientes }} ingredientes</span>{% endif %}
             </p>
             {% if mi_rating %}
             <p class="mi-valoracion">Tu valoración: <span aria-label="{{ mi_rating }} de 5">{{ "★" * mi_rating }}</span></p>
+            {% endif %}
+            {% if lleva %}
+            <p class="lleva">Lleva: {{ lleva }}</p>
             {% endif %}
             {% if por_que %}
             <p class="por-que">Porque te gustó <em>{{ por_que }}</em></p>

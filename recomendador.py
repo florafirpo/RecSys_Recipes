@@ -557,6 +557,74 @@ def populares_variadas(N=12):
     return elegidas
 
 
+# ---------------------------------------------------------------------------
+# Explorar: buscar por ingrediente y por categoria
+# ---------------------------------------------------------------------------
+
+# Categorias de food.com que no son de comida: no se muestran para explorar
+CATEGORIAS_QUE_NO_SON_COMIDA = {"Household Cleaner", "Bath/Beauty", "Homeopathy/Remedies"}
+
+
+def categorias_disponibles(min_recetas=10):
+    """Categorias con al menos min_recetas recetas, de la mas grande a la mas chica.
+    Devuelve [(categoria, cantidad), ...]."""
+    filas = sql_select("""
+        SELECT category, COUNT(*) AS n FROM recetas
+         WHERE title IS NOT NULL AND category IS NOT NULL
+         GROUP BY category HAVING COUNT(*) >= ?
+         ORDER BY n DESC
+    """, [min_recetas])
+    return [(f["category"], f["n"]) for f in filas if f["category"] not in CATEGORIAS_QUE_NO_SON_COMIDA]
+
+
+def recetas_con_ingrediente(terminos):
+    """{id_receta: texto del ingrediente que coincidio} para las recetas que
+    llevan alguno de los terminos (en ingles). Busca la palabra entera:
+    'egg' encuentra 'eggs' pero no 'eggplant'."""
+    import re
+    encontradas = {}
+    for termino in terminos:
+        patron = re.compile(r"\b" + re.escape(termino.lower()) + r"(s|es)?\b")
+        filas = sql_select("SELECT recipe_id, texto_completo FROM ingredientes WHERE LOWER(texto_completo) LIKE ?",
+                           [f"%{termino.lower()}%"])
+        for f in filas:
+            if f["recipe_id"] not in encontradas and patron.search(f["texto_completo"].lower()):
+                encontradas[f["recipe_id"]] = f["texto_completo"]
+    return encontradas
+
+
+def buscar_recetas(terminos=None, categoria=None, N=30):
+    """Las recetas mejor valoradas (rating promedio en la base; desempata la
+    cantidad de reseñas), filtradas por ingrediente y/o categoria.
+    Devuelve (recetas, {id: ingrediente que coincidio})."""
+    condiciones, parametros, lleva = ["recetas.title IS NOT NULL"], [], {}
+    if terminos:
+        lleva = recetas_con_ingrediente(terminos)
+        if not lleva:
+            return [], {}
+        marcas = ",".join("?" * len(lleva))
+        condiciones.append(f"recetas.id IN ({marcas})")
+        parametros += list(lleva)
+    if categoria:
+        condiciones.append("recetas.category = ?")
+        parametros.append(categoria)
+    else:
+        marcas = ",".join("?" * len(CATEGORIAS_QUE_NO_SON_COMIDA))
+        condiciones.append(f"COALESCE(recetas.category, '') NOT IN ({marcas})")
+        parametros += sorted(CATEGORIAS_QUE_NO_SON_COMIDA)
+    parametros.append(N)
+    recetas = sql_select(f"""
+        SELECT recetas.*, AVG(interacciones.rating) AS promedio, COUNT(*) AS cant_resenas
+          FROM recetas
+          JOIN interacciones ON interacciones.id_receta = recetas.id
+         WHERE {" AND ".join(condiciones)}
+         GROUP BY recetas.id
+         ORDER BY promedio DESC, cant_resenas DESC
+         LIMIT ?
+    """, parametros)
+    return recetas, lleva
+
+
 def top_populares(N=10):
     """Las N recetas mas populares en general (sin importar el usuario),
     para la seccion fija de 'Las más populares' de la pagina. Usa la

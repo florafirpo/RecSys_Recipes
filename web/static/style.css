@@ -322,3 +322,23 @@ img { display: block; max-width: 100%; height: auto; }
     .entrada { grid-template-columns: 1fr 1fr; gap: 56px; padding-top: 40px; }
     .entrada h1 { font-size: 3rem; }
 }
+
+/* --- Explorar: buscador y categorías ------------------------------------------- */
+
+.buscador { margin-bottom: 20px; max-width: 640px; }
+.buscador label { display: block; font-weight: 700; color: var(--tinta); margin-bottom: 6px; }
+.buscador-fila { display: flex; gap: 10px; flex-wrap: wrap; }
+.buscador-fila input {
+    flex: 1; min-width: 200px; min-height: 48px; padding: 10px 18px;
+    font: inherit; border: 2px solid var(--linea); border-radius: 999px; background: #fff;
+}
+.buscador-fila input:focus { border-color: var(--tomate); outline: none; }
+.buscador-chico { margin-top: 32px; }
+
+.categorias { flex-wrap: nowrap; overflow-x: auto; }  /* en el celular se desliza de costado */
+@media (min-width: 720px) { .categorias { flex-wrap: wrap; overflow: visible; } }
+.categorias .cuenta { font-weight: 400; color: var(--suave); margin-left: 4px; }
+.categorias a[aria-current="page"] .cuenta { color: var(--linea); }
+
+.resultado-cabecera { margin: 8px 0 16px; }
+.lleva { font-size: .85rem; color: var(--suave); font-style: italic; }

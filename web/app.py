@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect
 
 import recomendador
 from categorias import en_castellano
+from ingredientes import terminos_de_busqueda
 
 app = Flask(__name__)
 
@@ -184,6 +185,35 @@ def post_senal(id_usuario, id_receta):
         return redirect(con_aviso(volver, "descartada", nueva["id"] if nueva else None))
 
     return redirect(volver)
+
+
+# ---------------------------------------------------------------------------
+# Explorar: buscador por ingrediente y categorias
+# ---------------------------------------------------------------------------
+
+@app.get("/explorar/<int:id_usuario>")
+def get_explorar(id_usuario):
+    busqueda = (request.args.get("q") or "").strip()
+    categoria = request.args.get("categoria") or None
+    terminos = terminos_de_busqueda(busqueda) if busqueda else []
+
+    recetas, lleva = recomendador.buscar_recetas(terminos=terminos, categoria=categoria, N=30)
+    volver = request.full_path.rstrip("?")
+    return render_template(
+        "explorar.html",
+        activa="explorar",
+        busqueda=busqueda,
+        terminos=terminos,
+        categoria=categoria,
+        categorias=recomendador.categorias_disponibles(min_recetas=15),
+        recetas=recetas,
+        lleva=lleva,
+        n_ingredientes=recomendador.cantidad_ingredientes([r["id"] for r in recetas]),
+        guardadas=set(recomendador.items_con_senal(id_usuario, "tienta")),
+        aviso=AVISOS.get(request.args.get("aviso")),
+        volver=volver,
+        **datos_de_usuario(id_usuario),
+    )
 
 
 # ---------------------------------------------------------------------------

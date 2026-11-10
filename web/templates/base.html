@@ -23,6 +23,7 @@
             {% if id_usuario %}
             <nav class="nav" aria-label="Principal">
                 <a href="/recomendar/{{ id_usuario }}" {% if activa == 'inicio' %}aria-current="page"{% endif %}>Inicio</a>
+                <a href="/explorar/{{ id_usuario }}" {% if activa == 'explorar' %}aria-current="page"{% endif %}>Explorar</a>
                 <a href="/vistas/{{ id_usuario }}" {% if activa == 'vistas' %}aria-current="page"{% endif %}>Ya vistas</a>
                 <span class="usuario">Hola, <strong>{{ username }}</strong></span>
             </nav>
