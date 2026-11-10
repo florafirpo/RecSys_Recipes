@@ -28,8 +28,6 @@
             <div class="receta-acciones">
                 {% if pasos %}
                 <a class="boton" href="#preparacion">Ver la preparación ↓</a>
-                {% elif receta["url"] %}
-                <a class="boton" href="{{ receta['url'] }}" target="_blank" rel="noopener">Ver la preparación ↗</a>
                 {% endif %}
                 <form method="POST" action="/senal/{{ id_usuario }}/{{ receta['id'] }}">
                     <input type="hidden" name="tipo" value="tienta">

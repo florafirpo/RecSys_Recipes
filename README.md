@@ -322,7 +322,7 @@ La página web importa `recomendador.py`, que a su vez necesita `config.py`. Sub
 - **Explorar:** buscador por ingrediente y categorías como botones, combinables. Muestra las recetas mejor valoradas (rating promedio en la base; desempata la cantidad de reseñas). Como los ingredientes están en inglés, `web/ingredientes.py` traduce lo que escribe el usuario ("pollo" → chicken). Busca la palabra entera: "huevo" encuentra *eggs* pero no *eggplant*. Las categorías que no son de comida (limpieza, belleza, remedios) no aparecen.
 - **Ya vistas:** historial con pestañas *Todas · Guardadas · Sin valorar · Valoradas*.
 - **Reinicio:** es un formulario POST con confirmación, así abrir una dirección no borra el historial.
-- **Diseño:** pensado primero para el celular, con categorías en castellano, la receta destacada arriba, la receta en dos columnas con un link a la preparación en food.com, estrellas accesibles (de 1 a 5, con etiquetas para lectores de pantalla) y foco visible al navegar con teclado.
+- **Diseño:** pensado primero para el celular, con categorías en castellano, la receta destacada arriba, la receta en dos columnas, estrellas accesibles (de 1 a 5, con etiquetas para lectores de pantalla) y foco visible al navegar con teclado.
 
 **Qué recomienda la página.** La página llama a `recomendar()`: con 2 recetas valoradas o menos usa popularidad (`top_n`), y desde la tercera usa **EASE**, completando con `top_n` si faltan recetas. Antes usaba `perfil`, que en la evaluación acertaba bastante menos (hit rate 20 % contra 51 %). En `python main.py evaluar` aparece como "recomendar (la pagina)" y da lo mismo que EASE.
 
