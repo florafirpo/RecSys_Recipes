@@ -63,6 +63,13 @@ def comando_base(args):
     dataset.armar_base_app()
 
 
+def comando_actividad(args):
+    import actividad
+    resultados = actividad.simular()
+    actividad.mostrar(resultados)
+    actividad.graficar(resultados)
+
+
 def comando_preparacion(args):
     import dataset
     dataset.agregar_preparacion()
@@ -110,6 +117,9 @@ def crear_parser():
 
     p = sub.add_parser("base", help="arma recetas_app.db con el subconjunto de la matriz")
     p.set_defaults(funcion=comando_base)
+
+    p = sub.add_parser("actividad", help="NDCG de cada modelo segun cuantas reseñas se conocen del usuario")
+    p.set_defaults(funcion=comando_actividad)
 
     p = sub.add_parser("preparacion", help="agrega pasos de preparacion y cantidades a recetas_app.db")
     p.set_defaults(funcion=comando_preparacion)

@@ -74,6 +74,7 @@ Para ver todas las opciones: `python main.py --help` o `python main.py matriz --
 | `python main.py matriz 40 10 --top 2000` | Exporta el recorte a las 2000 recetas más populares | `food_scraping.db` | `.npz` + 2 CSV |
 | `python main.py matriz --densidad-minima 0.02` | Prueba una grilla de mínimos y exporta la combinación con más usuarios y densidad ≥ 2 % | `food_scraping.db` | `.npz` + 2 CSV |
 | `python main.py base` | Arma la base liviana de la aplicación (la anterior queda como `recetas_app_anterior.db`) | `food_scraping.db` + CSV | `recetas_app.db` |
+| `python main.py actividad` | NDCG de cada modelo según cuántas reseñas se conocen del usuario (simulación de cold start, usar con split temporal) | train + test | `resultados/ndcg_segun_historial.*` |
 | `python main.py preparacion` | Agrega a `recetas_app.db` los pasos de preparación (tabla `preparacion`) y las cantidades de los ingredientes (columna `cantidad`), sin rearmar la base | `food_scraping.db` + `recetas_app.db` | `recetas_app.db` actualizada |
 | `python main.py split` | Separa train / test por usuario (80/20 al azar) | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
 | `python main.py split --temporal 2012-01-01` | Corte por fecha: train = antes, test = desde esa fecha | `recetas_app.db` | `recetas_train.db`, `recetas_test.db` |
@@ -241,6 +242,26 @@ Qué cambió respecto de la base anterior:
 **Conclusión:** con la base nueva, **EASE es el mejor modelo en los dos splits** y el único que le gana con significancia a la popularidad en el corte temporal, que es la evaluación más realista.
 
 Estas tablas se midieron con k = 50 y λ = 500. Después se ajustaron con validación (sección siguiente).
+
+### Qué modelo conviene según cuánto sabemos del usuario
+
+Por el p-core, todos los usuarios tienen 40 reseñas o más, así que la evaluación normal nunca prueba un usuario nuevo. `python main.py actividad` lo simula sobre el corte temporal: a cada usuario de test le deja solo sus últimas k reseñas de train, como si fuera todo lo que el sistema sabe de él, y mide cada modelo con NDCG@10. No se recomiendan recetas que el usuario ya reseñó antes del corte; si no, los modelos gastarían lugares en recetas que nunca pueden ser acierto. Salida completa en `resultados/ndcg_segun_historial.txt` y gráfico en `resultados/ndcg_segun_historial.png`.
+
+| Reseñas conocidas (k) | Popularidad | user-kNN | EASE | Mejor |
+|---|---|---|---|---|
+| 1 | 0,041 | 0,035 | 0,022 | popularidad (EASE significativamente peor) |
+| 2 | 0,041 | 0,040 | 0,029 | popularidad |
+| 3 | 0,041 | 0,046 | 0,032 | user-kNN |
+| 5 | 0,040 | 0,043 | 0,035 | user-kNN |
+| 10 | 0,040 | 0,045 | 0,037 | user-kNN |
+| 20 | 0,039 | 0,044 | 0,042 | user-kNN (significativo contra popularidad) |
+| 30 | 0,037 | 0,046 | 0,043 | user-kNN; EASE ya le gana a popularidad |
+| 50 | 0,036 | 0,046 | 0,047 | EASE ≈ user-kNN |
+
+- Con 1 o 2 reseñas conviene la popularidad.
+- Entre 3 y 30, user-kNN es el mejor. Le gana a la popularidad por poco: la diferencia es significativa en k = 4, 20, 30 y 50.
+- EASE necesita mucho historial: recién supera a la popularidad desde unas 30 reseñas. Con pocas recetas, la suma de pesos receta por receta es ruidosa; bajar λ no lo arregla (con λ = 50 o 200 rinde peor).
+- Por lo tanto, el umbral actual de la página (EASE desde la tercera receta) no es el mejor: en el tramo de 3 a 30 recetas conviene user-kNN.
 
 ### Ajuste de k y λ con validación
 
